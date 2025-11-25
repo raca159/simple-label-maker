@@ -1,0 +1,108 @@
+// Configuration types
+export interface ProjectConfig {
+  projectId: string;
+  projectName: string;
+  description: string;
+  azureStorage: {
+    accountName: string;
+    containerName: string;
+    dataPath: string;
+    annotationsPath: string;
+  };
+  authentication: {
+    azureB2C: {
+      tenantId: string;
+      clientId: string;
+      authority: string;
+      redirectUri: string;
+      scopes: string[];
+    };
+  };
+  samples: SampleInfo[];
+}
+
+export interface SampleInfo {
+  id: string;
+  fileName: string;
+  type: 'image' | 'text' | 'audio' | 'video';
+  metadata?: Record<string, string>;
+}
+
+// UI Schema types (parsed from UI.xml)
+export interface UISchema {
+  labelingInterface: {
+    title: string;
+    description?: string;
+    dataSource: DataSource;
+    labels: LabelConfig[];
+    layout?: LayoutConfig;
+  };
+}
+
+export interface DataSource {
+  type: 'image' | 'text' | 'audio' | 'video';
+  field: string;
+}
+
+export interface LabelConfig {
+  name: string;
+  type: 'classification' | 'bounding-box' | 'polygon' | 'text-input' | 'choices' | 'rating';
+  required?: boolean;
+  options?: LabelOption[];
+  min?: number;
+  max?: number;
+  multiSelect?: boolean;
+}
+
+export interface LabelOption {
+  value: string;
+  label: string;
+  hotkey?: string;
+  color?: string;
+}
+
+export interface LayoutConfig {
+  columns?: number;
+  showProgress?: boolean;
+  showInstructions?: boolean;
+}
+
+// Annotation types
+export interface Annotation {
+  id: string;
+  sampleId: string;
+  userId: string;
+  timestamp: string;
+  labels: Record<string, AnnotationValue>;
+  status: 'draft' | 'submitted';
+}
+
+export type AnnotationValue = 
+  | string 
+  | string[] 
+  | number 
+  | BoundingBox 
+  | BoundingBox[] 
+  | Polygon 
+  | Polygon[];
+
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label?: string;
+}
+
+export interface Polygon {
+  points: { x: number; y: number }[];
+  label?: string;
+}
+
+// Session types
+export interface UserSession {
+  userId: string;
+  email: string;
+  name: string;
+  roles: string[];
+}

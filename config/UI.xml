@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LabelingInterface title="Image Classification" description="Classify the images into categories. Use keyboard shortcuts for faster labeling.">
+  <DataSource type="image" field="imageUrl" />
+  
+  <Labels>
+    <Label name="category" type="choices" required="true" multiSelect="false">
+      <Option value="cat" label="Cat" hotkey="1" color="#FF5733" />
+      <Option value="dog" label="Dog" hotkey="2" color="#33FF57" />
+      <Option value="bird" label="Bird" hotkey="3" color="#3357FF" />
+      <Option value="other" label="Other" hotkey="4" color="#9B59B6" />
+    </Label>
+    
+    <Label name="quality" type="rating" required="false" min="1" max="5" />
+    
+    <Label name="notes" type="text-input" required="false" />
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>

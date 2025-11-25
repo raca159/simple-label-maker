@@ -1,2 +1,199 @@
-# simple-label-maker
-A simple containerized and Azure backed data labeling solution.
+# Simple Label Maker
+
+A simple containerized and Azure-backed data labeling solution inspired by Label Studio. Designed to run on Azure behind Azure B2C authentication.
+
+## Features
+
+- **TypeScript Web Application**: Modern, responsive UI for data labeling
+- **Azure Blob Storage Integration**: Retrieve samples and store annotations in Azure Blob Storage
+- **Configurable Labeling Interface**: Define your labeling schema via `UI.xml`
+- **Azure B2C Authentication Ready**: Built-in support for Azure AD B2C authentication
+- **Docker Containerized**: Easy deployment with Docker and docker-compose
+- **Multiple Data Types**: Support for images, text, audio, and video
+- **Keyboard Shortcuts**: Fast labeling with configurable hotkeys
+- **Progress Tracking**: Visual progress bar and annotation counting
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+ (for development)
+- Docker (for containerized deployment)
+
+### Development Mode
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Start the development server:
+```bash
+npm run dev
+```
+
+3. Open http://localhost:3000 in your browser
+
+### Docker Deployment
+
+1. Build and run with Docker Compose:
+```bash
+docker-compose up --build
+```
+
+2. Or build and run manually:
+```bash
+docker build -t simple-label-maker .
+docker run -p 3000:3000 simple-label-maker
+```
+
+## Configuration
+
+### Project Configuration (`config/project.json`)
+
+```json
+{
+  "projectId": "my-project",
+  "projectName": "My Labeling Project",
+  "description": "Project description shown to annotators",
+  "azureStorage": {
+    "accountName": "your-storage-account",
+    "containerName": "labeling-data",
+    "dataPath": "samples",
+    "annotationsPath": "annotations"
+  },
+  "authentication": {
+    "azureB2C": {
+      "tenantId": "your-tenant-id",
+      "clientId": "your-client-id",
+      "authority": "https://your-tenant.b2clogin.com/...",
+      "redirectUri": "http://localhost:3000/auth/callback",
+      "scopes": ["openid", "profile", "email"]
+    }
+  },
+  "samples": [
+    {
+      "id": "sample-001",
+      "fileName": "image1.jpg",
+      "type": "image",
+      "metadata": {}
+    }
+  ]
+}
+```
+
+### UI Schema (`config/UI.xml`)
+
+Define your labeling interface using XML:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<LabelingInterface title="Image Classification" description="Classify images">
+  <DataSource type="image" field="imageUrl" />
+  
+  <Labels>
+    <Label name="category" type="choices" required="true">
+      <Option value="cat" label="Cat" hotkey="1" color="#FF5733" />
+      <Option value="dog" label="Dog" hotkey="2" color="#33FF57" />
+    </Label>
+    
+    <Label name="quality" type="rating" min="1" max="5" />
+    
+    <Label name="notes" type="text-input" />
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>
+```
+
+### Supported Label Types
+
+- `choices` / `classification`: Single or multi-select options
+- `rating`: Star rating (1-5 or custom range)
+- `text-input`: Free-form text input
+- `bounding-box`: Draw bounding boxes on images (planned)
+- `polygon`: Draw polygons on images (planned)
+
+## Azure Setup
+
+### Azure Blob Storage
+
+1. Create an Azure Storage Account
+2. Create a container for your labeling project
+3. Upload your samples to the `samples` folder
+4. Set the connection string as an environment variable:
+
+```bash
+export AZURE_STORAGE_CONNECTION_STRING="your-connection-string"
+```
+
+### Azure B2C Authentication
+
+1. Create an Azure AD B2C tenant
+2. Register your application
+3. Create user flows (sign-up/sign-in)
+4. Update the `authentication` section in `project.json`
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `PORT` | Server port (default: 3000) | No |
+| `AZURE_STORAGE_CONNECTION_STRING` | Azure Blob Storage connection string | For Azure mode |
+| `CONFIG_PATH` | Custom path to project.json | No |
+| `UI_XML_PATH` | Custom path to UI.xml | No |
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/project` | GET | Get project information |
+| `/api/ui-schema` | GET | Get UI schema |
+| `/api/samples` | GET | List all samples |
+| `/api/samples/:id` | GET | Get sample details |
+| `/api/samples/:id/data` | GET | Get sample data/URL |
+| `/api/annotations/:sampleId` | GET | Get annotation for sample |
+| `/api/annotations` | POST | Save annotation |
+| `/api/stats` | GET | Get project statistics |
+| `/api/navigation/:sampleId` | GET | Get navigation info |
+| `/health` | GET | Health check endpoint |
+
+## Keyboard Shortcuts
+
+- `1-9`: Select corresponding label option
+- `Ctrl + Enter`: Submit annotation
+- `Alt + Left`: Previous sample
+- `Alt + Right`: Next sample
+
+## Project Structure
+
+```
+simple-label-maker/
+├── src/
+│   ├── index.ts           # Express server entry point
+│   ├── routes/
+│   │   └── api.ts         # API routes
+│   ├── services/
+│   │   ├── azureStorage.ts    # Azure Blob Storage integration
+│   │   ├── configService.ts   # Configuration management
+│   │   └── uiSchemaParser.ts  # UI.xml parser
+│   └── types/
+│       └── index.ts       # TypeScript type definitions
+├── public/
+│   ├── index.html         # Main HTML template
+│   ├── css/
+│   │   └── styles.css     # Application styles
+│   └── js/
+│       └── app.js         # Frontend JavaScript
+├── config/
+│   ├── project.json       # Project configuration
+│   └── UI.xml             # Labeling interface schema
+├── Dockerfile             # Docker build file
+├── docker-compose.yml     # Docker Compose configuration
+├── package.json           # Node.js dependencies
+└── tsconfig.json          # TypeScript configuration
+```
+
+## License
+
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
