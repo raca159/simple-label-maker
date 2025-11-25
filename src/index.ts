@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
+import rateLimit from 'express-rate-limit';
 import { configService } from './services/configService';
 import { storageService } from './services/azureStorage';
 import apiRouter from './routes/api';
@@ -8,7 +9,16 @@ import apiRouter from './routes/api';
 const app = express();
 const PORT = process.env.PORT ?? 3000;
 
+// Rate limiting for security
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware
+app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));

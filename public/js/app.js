@@ -443,17 +443,14 @@ class LabelMaker {
       // Don't handle shortcuts when typing in textarea
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
       
-      // Number keys for hotkeys
+      // Number keys for hotkeys - iterate through all options to find matching hotkey
       if (e.key >= '1' && e.key <= '9') {
-        const option = document.querySelector(`[data-label-name] .choice-hotkey`);
-        if (option) {
-          const allOptions = document.querySelectorAll('.choice-option .choice-hotkey');
-          allOptions.forEach(hotkeyEl => {
-            if (hotkeyEl.textContent === e.key) {
-              hotkeyEl.closest('.choice-option').click();
-            }
-          });
-        }
+        const allOptions = document.querySelectorAll('.choice-option .choice-hotkey');
+        allOptions.forEach(hotkeyEl => {
+          if (hotkeyEl.textContent === e.key) {
+            hotkeyEl.closest('.choice-option').click();
+          }
+        });
       }
       
       // Enter to submit

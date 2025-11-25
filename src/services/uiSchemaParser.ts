@@ -74,21 +74,31 @@ export class UISchemaParser {
 
   private parseDataSource(dataSources?: Array<{ $?: { type?: string; field?: string } }>): DataSource {
     const ds = dataSources?.[0]?.$;
+    const validTypes: DataSource['type'][] = ['image', 'text', 'audio', 'video'];
+    const rawType = ds?.type ?? 'image';
+    const type = validTypes.includes(rawType as DataSource['type']) 
+      ? rawType as DataSource['type'] 
+      : 'image';
     return {
-      type: (ds?.type as DataSource['type']) ?? 'image',
+      type,
       field: ds?.field ?? 'data'
     };
   }
 
   private parseLabels(labelsArray?: Array<{ Label?: ParsedLabel[] }>): LabelConfig[] {
     const labels = labelsArray?.[0]?.Label ?? [];
+    const validLabelTypes: LabelConfig['type'][] = ['classification', 'bounding-box', 'polygon', 'text-input', 'choices', 'rating'];
     
     return labels.map((label): LabelConfig => {
       const attrs = label.$ ?? {};
+      const rawType = attrs.type ?? 'choices';
+      const type = validLabelTypes.includes(rawType as LabelConfig['type'])
+        ? rawType as LabelConfig['type']
+        : 'choices';
       
       return {
         name: attrs.name ?? 'label',
-        type: (attrs.type as LabelConfig['type']) ?? 'choices',
+        type,
         required: attrs.required === 'true',
         multiSelect: attrs.multiSelect === 'true',
         min: attrs.min ? parseInt(attrs.min, 10) : undefined,
