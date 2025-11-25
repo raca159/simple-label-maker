@@ -1,8 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { configService } from '../services/configService';
 import { storageService } from '../services/azureStorage';
-import { Annotation } from '../types';
+import { Annotation, UserSession } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+
+// Extended request type with user session from Azure B2C
+interface AuthenticatedRequest extends Request {
+  user?: UserSession & {
+    azureObjectId?: string;
+    tenantId?: string;
+  };
+}
 
 const router = Router();
 
@@ -96,8 +104,9 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
 // Get annotation for a sample
 router.get('/annotations/:sampleId', async (req: Request, res: Response) => {
   try {
-    // For demo, use a fixed user ID
-    const userId = (req as Request & { user?: { userId: string } }).user?.userId ?? 'demo-user';
+    const authReq = req as AuthenticatedRequest;
+    // Get user ID from Azure B2C session or fallback to demo user
+    const userId = authReq.user?.userId ?? authReq.user?.azureObjectId ?? 'demo-user';
     
     // Check local storage first (for demo mode)
     if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
@@ -113,28 +122,40 @@ router.get('/annotations/:sampleId', async (req: Request, res: Response) => {
   }
 });
 
-// Save annotation
+// Save annotation - syncs to Azure Blob Storage with user credential tracking
 router.post('/annotations', async (req: Request, res: Response) => {
   try {
-    const userId = (req as Request & { user?: { userId: string } }).user?.userId ?? 'demo-user';
+    const authReq = req as AuthenticatedRequest;
+    // Get user information from Azure B2C session
+    const userId = authReq.user?.userId ?? authReq.user?.azureObjectId ?? 'demo-user';
+    const userEmail = authReq.user?.email;
+    const userName = authReq.user?.name;
+    const azureObjectId = authReq.user?.azureObjectId;
+    const tenantId = authReq.user?.tenantId;
     
     const annotation: Annotation = {
       id: uuidv4(),
       sampleId: req.body.sampleId,
       userId: userId,
+      userEmail: userEmail,
+      userName: userName,
       timestamp: new Date().toISOString(),
       labels: req.body.labels,
-      status: req.body.status ?? 'submitted'
+      status: req.body.status ?? 'submitted',
+      // Include Azure credential metadata for tracking who annotated what
+      azureObjectId: azureObjectId,
+      tenantId: tenantId
     };
 
-    // For demo mode, just return success
+    // For demo mode, just return success (stored in browser localStorage)
     if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
-      res.json({ success: true, annotation });
+      res.json({ success: true, annotation, syncedToAzure: false });
       return;
     }
 
+    // Sync annotation to Azure Blob Storage
     await storageService.saveAnnotation(annotation);
-    res.json({ success: true, annotation });
+    res.json({ success: true, annotation, syncedToAzure: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to save annotation' });
   }
@@ -175,6 +196,37 @@ router.get('/navigation/:sampleId', (req: Request, res: Response) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get navigation info' });
+  }
+});
+
+// List all annotations for a sample (for admin/review purposes)
+// Shows which users have annotated each sample
+router.get('/annotations/:sampleId/all', async (req: Request, res: Response) => {
+  try {
+    if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
+      res.json({ annotations: [], message: 'Azure storage not configured' });
+      return;
+    }
+
+    const annotations = await storageService.listAnnotationsForSample(req.params.sampleId);
+    // Return annotations with user tracking info
+    res.json({
+      sampleId: req.params.sampleId,
+      totalAnnotations: annotations.length,
+      annotations: annotations.map(a => ({
+        id: a.id,
+        userId: a.userId,
+        userEmail: a.userEmail,
+        userName: a.userName,
+        azureObjectId: a.azureObjectId,
+        tenantId: a.tenantId,
+        timestamp: a.timestamp,
+        status: a.status,
+        labels: a.labels
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to list annotations' });
   }
 });
 

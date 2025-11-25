@@ -127,6 +127,38 @@ Define your labeling interface using XML:
 export AZURE_STORAGE_CONNECTION_STRING="your-connection-string"
 ```
 
+### Annotation Syncing to Azure
+
+When Azure Storage is configured, all annotations are automatically synced to Azure Blob Storage with full user tracking:
+
+- **User ID**: Unique identifier from Azure B2C
+- **User Email**: Email address from Azure credentials
+- **User Name**: Display name from Azure profile
+- **Azure Object ID**: Azure AD object ID for precise user tracking
+- **Tenant ID**: Azure AD tenant for multi-tenant scenarios
+- **Timestamp**: When the annotation was created
+
+Annotations are stored as JSON files at:
+```
+{annotationsPath}/{sampleId}_{userId}.json
+```
+
+Example annotation structure:
+```json
+{
+  "id": "uuid-v4",
+  "sampleId": "sample-001",
+  "userId": "user-azure-id",
+  "userEmail": "user@example.com",
+  "userName": "John Doe",
+  "azureObjectId": "azure-object-id",
+  "tenantId": "tenant-id",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "labels": { "category": "cat", "quality": 5 },
+  "status": "submitted"
+}
+```
+
 ### Azure B2C Authentication
 
 1. Create an Azure AD B2C tenant
@@ -152,8 +184,9 @@ export AZURE_STORAGE_CONNECTION_STRING="your-connection-string"
 | `/api/samples` | GET | List all samples |
 | `/api/samples/:id` | GET | Get sample details |
 | `/api/samples/:id/data` | GET | Get sample data/URL |
-| `/api/annotations/:sampleId` | GET | Get annotation for sample |
-| `/api/annotations` | POST | Save annotation |
+| `/api/annotations/:sampleId` | GET | Get annotation for current user |
+| `/api/annotations/:sampleId/all` | GET | List all annotations with user tracking |
+| `/api/annotations` | POST | Save annotation (syncs to Azure with user info) |
 | `/api/stats` | GET | Get project statistics |
 | `/api/navigation/:sampleId` | GET | Get navigation info |
 | `/health` | GET | Health check endpoint |

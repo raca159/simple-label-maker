@@ -72,9 +72,14 @@ export interface Annotation {
   id: string;
   sampleId: string;
   userId: string;
+  userEmail?: string;
+  userName?: string;
   timestamp: string;
   labels: Record<string, AnnotationValue>;
   status: 'draft' | 'submitted';
+  // Azure credential metadata for tracking
+  azureObjectId?: string;
+  tenantId?: string;
 }
 
 export type AnnotationValue = 
