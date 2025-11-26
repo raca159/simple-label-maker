@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simple Label Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -11,59 +14,63 @@
   <div id="app">
     <!-- Header -->
     <header class="header">
-      <div class="header-left">
-        <h1 class="logo">🏷️ Simple Label Maker</h1>
-        <span class="project-name" id="projectName">Loading...</span>
-      </div>
-      <div class="header-right">
-        <div class="progress-info" id="progressInfo">
-          <span id="progressText">0 / 0</span>
-          <div class="progress-bar">
-            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-          </div>
+      <div class="header-container">
+        <div class="header-left">
+          <h1 class="logo">🏷️ Simple Label Maker</h1>
+          <span class="project-name" id="projectName">Loading...</span>
         </div>
-        <button class="btn btn-secondary" id="userBtn">Demo User</button>
+        <div class="header-right">
+          <div class="progress-info" id="progressInfo">
+            <span class="progress-text" id="progressText">0 / 0</span>
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+          </div>
+          <button class="btn btn-ghost" id="userBtn">Demo User</button>
+        </div>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Data View Panel -->
-      <div class="data-panel" id="dataPanel">
-        <div class="panel-header">
-          <h2>Data</h2>
-          <span class="sample-id" id="sampleId">-</span>
-        </div>
-        <div class="data-content" id="dataContent">
-          <div class="loading-placeholder">
-            <div class="spinner"></div>
-            <p>Loading sample...</p>
+      <div class="content-grid">
+        <!-- Data View Panel -->
+        <div class="panel data-panel" id="dataPanel">
+          <div class="panel-header">
+            <h2 class="panel-title">Data</h2>
+            <span class="sample-id" id="sampleId">-</span>
+          </div>
+          <div class="data-content" id="dataContent">
+            <div class="loading-placeholder">
+              <div class="spinner"></div>
+              <p>Loading sample...</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Labeling Panel -->
-      <div class="label-panel" id="labelPanel">
-        <div class="panel-header">
-          <h2 id="labelingTitle">Labels</h2>
-        </div>
-        <div class="labeling-interface" id="labelingInterface">
-          <!-- Dynamic labeling controls will be inserted here -->
-        </div>
-        
-        <!-- Navigation and Submit -->
-        <div class="action-buttons">
-          <div class="nav-buttons">
-            <button class="btn btn-outline" id="prevBtn" disabled>
-              ← Previous
-            </button>
-            <button class="btn btn-outline" id="nextBtn" disabled>
-              Next →
-            </button>
+        <!-- Labeling Panel -->
+        <div class="panel label-panel" id="labelPanel">
+          <div class="panel-header">
+            <h2 class="panel-title" id="labelingTitle">Labels</h2>
           </div>
-          <div class="submit-buttons">
-            <button class="btn btn-secondary" id="skipBtn">Skip</button>
-            <button class="btn btn-primary" id="submitBtn">Submit</button>
+          <div class="labeling-interface" id="labelingInterface">
+            <!-- Dynamic labeling controls will be inserted here -->
+          </div>
+          
+          <!-- Navigation and Submit -->
+          <div class="action-bar">
+            <div class="nav-buttons">
+              <button class="btn btn-outline" id="prevBtn" disabled>
+                ← Previous
+              </button>
+              <button class="btn btn-outline" id="nextBtn" disabled>
+                Next →
+              </button>
+            </div>
+            <div class="submit-buttons">
+              <button class="btn btn-secondary" id="skipBtn">Skip</button>
+              <button class="btn btn-primary" id="submitBtn">Submit</button>
+            </div>
           </div>
         </div>
       </div>
@@ -71,12 +78,14 @@
 
     <!-- Instructions Panel (collapsible) -->
     <aside class="instructions-panel" id="instructionsPanel">
-      <div class="panel-header">
-        <h3>Instructions</h3>
-        <button class="toggle-btn" id="toggleInstructions">−</button>
-      </div>
-      <div class="instructions-content" id="instructionsContent">
-        <p id="projectDescription">Loading project description...</p>
+      <div class="instructions-container">
+        <div class="instructions-header">
+          <h3>Instructions</h3>
+          <button class="toggle-btn" id="toggleInstructions">−</button>
+        </div>
+        <div class="instructions-content" id="instructionsContent">
+          <p id="projectDescription">Loading project description...</p>
+        </div>
       </div>
     </aside>
 
