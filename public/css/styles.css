@@ -28,9 +28,15 @@
   --slate-800: #1e293b;
   --slate-900: #0f172a;
   
+  --emerald-50: #f0fdf4;
   --emerald-500: #10b981;
+  --emerald-800: #166534;
+  --amber-50: #fffbeb;
   --amber-500: #f59e0b;
+  --amber-800: #92400e;
+  --red-50: #fef2f2;
   --red-500: #ef4444;
+  --red-800: #991b1b;
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -601,20 +607,20 @@ body {
 
 .toast.success {
   border-left: 4px solid var(--emerald-500);
-  background-color: #f0fdf4;
-  color: #166534;
+  background-color: var(--emerald-50);
+  color: var(--emerald-800);
 }
 
 .toast.error {
   border-left: 4px solid var(--red-500);
-  background-color: #fef2f2;
-  color: #991b1b;
+  background-color: var(--red-50);
+  color: var(--red-800);
 }
 
 .toast.warning {
   border-left: 4px solid var(--amber-500);
-  background-color: #fffbeb;
-  color: #92400e;
+  background-color: var(--amber-50);
+  color: var(--amber-800);
 }
 
 @keyframes slideIn {
@@ -731,6 +737,25 @@ body {
   height: 18px;
   cursor: pointer;
   accent-color: var(--primary-600);
+  /* Fallback for older browsers */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 2px solid var(--slate-300);
+  border-radius: 50%;
+  background-color: white;
+  transition: all var(--transition-fast);
+}
+
+.global-option input[type="radio"]:checked {
+  border-color: var(--primary-600);
+  background-color: var(--primary-600);
+  box-shadow: inset 0 0 0 3px white;
+}
+
+.global-option input[type="radio"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-100);
 }
 
 .global-option-label {
