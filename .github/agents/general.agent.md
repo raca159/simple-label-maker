@@ -1,4 +1,9 @@
-# General Agent - Simple Label Maker
+---
+name: General Agent
+description: Agent for all operations in project
+---
+
+# My Agent
 
 ## Persona & Expertise
 
