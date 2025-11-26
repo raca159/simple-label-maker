@@ -1,4 +1,9 @@
-# UI/Labeling Agent - Simple Label Maker
+---
+name: UI Agent
+description: Agent dedicated for UI
+---
+
+# My Agent
 
 ## Persona & Expertise
 
