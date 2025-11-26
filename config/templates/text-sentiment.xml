@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Text Sentiment Analysis Template
+  
+  Use this template for sentiment classification of text documents.
+  Includes sentiment categories, confidence rating, and highlight notes.
+  
+  Customization:
+  - Modify sentiment options (positive/negative/neutral)
+  - Add more granular sentiment levels
+  - Adjust confidence rating scale
+  - Add entity extraction or topic classification labels
+-->
+<LabelingInterface title="Sentiment Analysis" 
+                   description="Classify the sentiment of the text document. Rate your confidence and optionally highlight key phrases.">
+  <DataSource type="text" field="content" />
+  
+  <Labels>
+    <Label name="sentiment" type="choices" required="true" multiSelect="false">
+      <Option value="positive" label="Positive 😊" hotkey="1" color="#10B981" />
+      <Option value="neutral" label="Neutral 😐" hotkey="2" color="#6B7280" />
+      <Option value="negative" label="Negative 😞" hotkey="3" color="#EF4444" />
+    </Label>
+    
+    <Label name="confidence" type="rating" required="false" min="1" max="5" />
+    
+    <Label name="highlights" type="text-input" required="false" />
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>

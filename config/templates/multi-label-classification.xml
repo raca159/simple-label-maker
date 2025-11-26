@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Multi-Label Classification Template
+  
+  Use this template when images/data can have multiple labels simultaneously.
+  Supports selecting multiple categories at once.
+  
+  Customization:
+  - Set multiSelect="true" for multi-label selection
+  - Add/remove categories as needed
+  - Combine with other label types (rating, text-input)
+-->
+<LabelingInterface title="Multi-Label Classification" 
+                   description="Select all applicable labels for this image. Multiple selections are allowed.">
+  <DataSource type="image" field="imageUrl" />
+  
+  <Labels>
+    <Label name="tags" type="choices" required="true" multiSelect="true">
+      <Option value="outdoor" label="Outdoor" hotkey="1" color="#3B82F6" />
+      <Option value="indoor" label="Indoor" hotkey="2" color="#8B5CF6" />
+      <Option value="people" label="People" hotkey="3" color="#10B981" />
+      <Option value="animals" label="Animals" hotkey="4" color="#F59E0B" />
+      <Option value="vehicles" label="Vehicles" hotkey="5" color="#EF4444" />
+      <Option value="nature" label="Nature" hotkey="6" color="#059669" />
+      <Option value="urban" label="Urban" hotkey="7" color="#6366F1" />
+      <Option value="text" label="Contains Text" hotkey="8" color="#EC4899" />
+    </Label>
+    
+    <Label name="quality" type="rating" required="false" min="1" max="5" />
+    
+    <Label name="description" type="text-input" required="false" />
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>

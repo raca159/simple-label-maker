@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Time-Series ECG Classification Template
+  
+  Use this template for classifying multi-lead ECG time series data.
+  Supports per-series labels, global classification, and clinical notes.
+  
+  Customization:
+  - Adjust count for number of series/leads (e.g., 12 for standard ECG)
+  - Modify SeriesOptions for per-lead classifications
+  - Modify GlobalOptions for overall diagnosis
+  - Adjust Axis min/max for your signal amplitude range
+  - Change globalLabel and commentLabel text
+-->
+<LabelingInterface title="ECG Classification" 
+                   description="Classify each ECG lead and provide an overall diagnosis. Add clinical observations in the comments.">
+  <DataSource type="time-series" field="seriesData" />
+  
+  <Labels>
+    <Label name="ecg" type="time-series" count="12" required="true" 
+           globalLabel="Diagnosis" commentLabel="Clinical Notes">
+      <Axis min="-1.5" max="1.5" />
+      <SeriesOptions>
+        <Option value="normal" label="Normal" color="#10B981" />
+        <Option value="AF" label="Atrial Fibrillation" color="#EF4444" />
+        <Option value="noise" label="Noise/Artifact" color="#F59E0B" />
+        <Option value="other" label="Other Abnormality" color="#8B5CF6" />
+      </SeriesOptions>
+      <GlobalOptions>
+        <Option value="normal" label="Normal Sinus Rhythm" hotkey="n" color="#10B981" />
+        <Option value="AF" label="Atrial Fibrillation" hotkey="a" color="#EF4444" />
+        <Option value="other" label="Other Arrhythmia" hotkey="o" color="#8B5CF6" />
+      </GlobalOptions>
+    </Label>
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>

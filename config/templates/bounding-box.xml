@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bounding Box Annotation Template (Planned Feature)
+  
+  This template is for object detection with bounding box annotations.
+  NOTE: Bounding box functionality is planned but not yet implemented.
+  
+  This template serves as a reference for the expected schema format.
+  Currently, you can use this template for classification tasks.
+  
+  Future Customization:
+  - Define object classes for detection
+  - Set minimum/maximum box sizes
+  - Configure annotation guidelines
+-->
+<LabelingInterface title="Object Detection" 
+                   description="Draw bounding boxes around objects and classify them. (Bounding box feature coming soon - currently classification only)">
+  <DataSource type="image" field="imageUrl" />
+  
+  <Labels>
+    <!-- Bounding box label (planned feature) -->
+    <Label name="objects" type="bounding-box" required="true">
+      <Option value="car" label="Car" color="#3B82F6" />
+      <Option value="person" label="Person" color="#10B981" />
+      <Option value="bicycle" label="Bicycle" color="#F59E0B" />
+      <Option value="motorcycle" label="Motorcycle" color="#EF4444" />
+      <Option value="bus" label="Bus" color="#8B5CF6" />
+      <Option value="truck" label="Truck" color="#EC4899" />
+    </Label>
+    
+    <!-- Fallback classification for current use -->
+    <Label name="scene_type" type="choices" required="false" multiSelect="false">
+      <Option value="street" label="Street Scene" hotkey="1" color="#3B82F6" />
+      <Option value="parking" label="Parking Lot" hotkey="2" color="#10B981" />
+      <Option value="highway" label="Highway" hotkey="3" color="#F59E0B" />
+      <Option value="intersection" label="Intersection" hotkey="4" color="#EF4444" />
+    </Label>
+    
+    <Label name="notes" type="text-input" required="false" />
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>

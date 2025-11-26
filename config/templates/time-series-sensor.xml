@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Time-Series Sensor Data Template
+  
+  Use this template for classifying multi-sensor time series data.
+  Ideal for IoT sensor data, accelerometer data, or other multi-channel signals.
+  
+  Customization:
+  - Adjust count for number of sensor channels
+  - Modify SeriesOptions for per-channel anomaly types
+  - Modify GlobalOptions for overall sample classification
+  - Adjust Axis min/max for your sensor value range
+-->
+<LabelingInterface title="Sensor Data Classification" 
+                   description="Review sensor readings and classify anomalies. Label each channel and provide an overall assessment.">
+  <DataSource type="time-series" field="seriesData" />
+  
+  <Labels>
+    <Label name="sensors" type="time-series" count="6" required="true" 
+           globalLabel="Sample Status" commentLabel="Observations">
+      <Axis min="-10" max="10" />
+      <SeriesOptions>
+        <Option value="normal" label="Normal" color="#10B981" />
+        <Option value="anomaly" label="Anomaly Detected" color="#EF4444" />
+        <Option value="drift" label="Sensor Drift" color="#F59E0B" />
+        <Option value="missing" label="Missing Data" color="#6B7280" />
+      </SeriesOptions>
+      <GlobalOptions>
+        <Option value="healthy" label="Healthy" hotkey="h" color="#10B981" />
+        <Option value="warning" label="Warning" hotkey="w" color="#F59E0B" />
+        <Option value="critical" label="Critical" hotkey="c" color="#EF4444" />
+      </GlobalOptions>
+    </Label>
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>
