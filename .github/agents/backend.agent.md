@@ -1,4 +1,9 @@
-# Backend/Infrastructure Agent - Simple Label Maker
+---
+name: Backend Agent
+description: Agent dedicated for Backend/Infrastructure
+---
+
+# My Agent
 
 ## Persona & Expertise
 
