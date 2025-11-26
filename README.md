@@ -106,13 +106,90 @@ Define your labeling interface using XML:
 </LabelingInterface>
 ```
 
+### Supported Data Source Types
+
+| Type | Description |
+|------|-------------|
+| `image` | Image files (jpg, png, etc.) |
+| `text` | Text documents |
+| `audio` | Audio files |
+| `video` | Video files |
+| `time-series` | Multi-timeseries data (JSON arrays) |
+
 ### Supported Label Types
 
 - `choices` / `classification`: Single or multi-select options
 - `rating`: Star rating (1-5 or custom range)
 - `text-input`: Free-form text input
+- `time-series`: Multi-timeseries annotation with per-series labels, global classification, and comments
 - `bounding-box`: Draw bounding boxes on images (planned)
 - `polygon`: Draw polygons on images (planned)
+
+### Time-Series Label Configuration
+
+For multi-timeseries annotation, use the `time-series` label type. This supports:
+- Visualizing multiple time series with Chart.js
+- Per-series classification labels
+- Global sample classification
+- Comment/observation field
+- Configurable y-axis min/max
+
+Example configuration:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<LabelingInterface title="ECG Classification" description="Classify ECG time series">
+  <DataSource type="time-series" field="seriesData" />
+  
+  <Labels>
+    <Label name="ecg" type="time-series" count="10" required="true" 
+           globalLabel="Sample Classification" commentLabel="Observations">
+      <Axis min="-1" max="1" />
+      <SeriesOptions>
+        <Option value="AF" label="Atrial Fibrillation" color="#FF5733" />
+        <Option value="Noise" label="Noise" color="#FFC300" />
+        <Option value="None" label="None (Unlabeled)" color="#C0C0C0" />
+      </SeriesOptions>
+      <GlobalOptions>
+        <Option value="AF" label="AF" hotkey="a" color="#FF5733" />
+        <Option value="nonAF" label="Non-AF" hotkey="n" color="#33FF57" />
+      </GlobalOptions>
+    </Label>
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>
+```
+
+#### Time-Series Label Attributes
+
+| Attribute | Description | Default |
+|-----------|-------------|---------|
+| `count` | Number of time series per sample | 10 |
+| `globalLabel` | Label text for global classification section | "Sample Classification" |
+| `commentLabel` | Label text for comment field | "Comments/Observations" |
+
+#### Child Elements
+
+- `<Axis min="" max="" />`: Y-axis configuration for charts
+- `<SeriesOptions>`: Label options for per-series classification
+- `<GlobalOptions>`: Label options for global sample classification
+
+#### Time-Series Annotation Format
+
+```json
+{
+  "labelName": {
+    "seriesLabels": {
+      "series_0": "AF",
+      "series_1": "Noise",
+      "series_2": "None"
+    },
+    "globalLabel": "AF",
+    "comment": "Sample shows clear AF pattern in series 0"
+  }
+}
+```
 
 ## Azure Setup
 

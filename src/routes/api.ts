@@ -85,6 +85,22 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
           content: `Sample text content for ${sample.fileName}`,
           type: sample.type 
         });
+      } else if (sample.type === 'time-series') {
+        // Generate demo time-series data
+        const seriesCount = 10;
+        const seriesData: number[][] = [];
+        for (let i = 0; i < seriesCount; i++) {
+          const series: number[] = [];
+          for (let j = 0; j < 100; j++) {
+            // Generate sinusoidal data with some noise for demo
+            series.push(Math.sin(j * 0.1 + i * 0.5) * 0.5 + (Math.random() - 0.5) * 0.2);
+          }
+          seriesData.push(series);
+        }
+        res.json({
+          seriesData,
+          type: sample.type
+        });
       } else {
         res.json({ 
           url: `/api/demo/media/${sample.id}`,
@@ -94,8 +110,21 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
       return;
     }
 
-    const url = await storageService.getSampleUrl(sample);
-    res.json({ url, type: sample.type });
+    // For Azure mode, check if it's time-series
+    if (sample.type === 'time-series') {
+      try {
+        const data = await storageService.getSampleData(sample);
+        const content = data.toString('utf-8');
+        const parsed = JSON.parse(content);
+        res.json({ seriesData: parsed.seriesData ?? parsed, type: sample.type });
+      } catch (parseError) {
+        res.status(400).json({ error: 'Invalid time-series data format. Expected valid JSON.' });
+        return;
+      }
+    } else {
+      const url = await storageService.getSampleUrl(sample);
+      res.json({ url, type: sample.type });
+    }
   } catch (error) {
     res.status(500).json({ error: 'Failed to get sample data' });
   }
