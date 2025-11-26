@@ -171,7 +171,7 @@ terraform output app_service_url
 | `storage_replication_type` | Storage redundancy (LRS, GRS, etc.) | `LRS` |
 | `acr_name` | Container registry name (globally unique) | `acrlabelmaker` |
 | `acr_sku` | ACR tier (Basic, Standard, Premium) | `Basic` |
-| `acr_admin_enabled` | Enable ACR admin user | `true` |
+| `acr_admin_enabled` | Enable ACR admin user (not recommended) | `false` |
 | `app_service_plan_name` | App Service Plan name | `asp-simple-label-maker` |
 | `app_service_sku` | App Service tier (B1, S1, P1v2, etc.) | `B1` |
 | `app_service_name` | App Service name (globally unique) | `app-simple-label-maker` |
@@ -229,6 +229,7 @@ This module uses a **User Assigned Managed Identity** for secure Azure resource 
 - The App Service uses `DefaultAzureCredential` to automatically authenticate
 - No connection strings or secrets are embedded in the application
 - Storage access is granted via RBAC with least-privilege permissions
+- ACR image pulling uses Managed Identity (no admin credentials required)
 
 ### Role Assignments
 
@@ -239,8 +240,8 @@ This module uses a **User Assigned Managed Identity** for secure Azure resource 
 
 ### Secrets Management
 
-- ACR credentials are managed by Terraform and injected as App Settings
-- For enhanced security, consider using Azure Key Vault for secrets
+- No ACR credentials are stored in app settings (Managed Identity is used)
+- For enhanced security, consider using Azure Key Vault for any additional secrets
 - Never commit `terraform.tfstate` files containing sensitive outputs
 
 ## Optional Enhancements
@@ -302,9 +303,10 @@ terraform destroy
 
 ### ACR Authentication Issues
 
-1. Verify ACR admin is enabled (or configure service principal)
+1. Verify the Managed Identity has the AcrPull role on the ACR
 2. Check that App Service can reach the ACR endpoint
-3. Review Docker registry app settings in the App Service
+3. Ensure `container_registry_use_managed_identity` is enabled in site_config
+4. Verify the Managed Identity client ID is correctly configured
 
 ## License
 

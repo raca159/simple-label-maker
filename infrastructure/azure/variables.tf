@@ -80,9 +80,9 @@ variable "acr_sku" {
 }
 
 variable "acr_admin_enabled" {
-  description = "Enable admin user for ACR (useful for simple deployments)"
+  description = "Enable admin user for ACR (not recommended, use Managed Identity instead)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 # -----------------------------------------------------------------------------

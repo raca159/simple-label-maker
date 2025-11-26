@@ -62,18 +62,6 @@ output "acr_login_server" {
   value       = azurerm_container_registry.main.login_server
 }
 
-output "acr_admin_username" {
-  description = "Admin username for the Azure Container Registry"
-  value       = azurerm_container_registry.main.admin_username
-  sensitive   = true
-}
-
-output "acr_admin_password" {
-  description = "Admin password for the Azure Container Registry"
-  value       = azurerm_container_registry.main.admin_password
-  sensitive   = true
-}
-
 # -----------------------------------------------------------------------------
 # App Service Outputs
 # -----------------------------------------------------------------------------

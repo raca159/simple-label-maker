@@ -187,13 +187,15 @@ resource "azurerm_linux_web_app" "main" {
   }
 
   site_config {
-    # Configure container settings
+    # Configure container settings using Managed Identity for ACR authentication
     application_stack {
-      docker_registry_url      = "https://${azurerm_container_registry.main.login_server}"
-      docker_image_name        = "${var.docker_image_name}:${var.docker_image_tag}"
-      docker_registry_username = azurerm_container_registry.main.admin_username
-      docker_registry_password = azurerm_container_registry.main.admin_password
+      docker_registry_url = "https://${azurerm_container_registry.main.login_server}"
+      docker_image_name   = "${var.docker_image_name}:${var.docker_image_tag}"
     }
+
+    # Use Managed Identity for ACR authentication (no credentials needed)
+    container_registry_use_managed_identity       = true
+    container_registry_managed_identity_client_id = azurerm_user_assigned_identity.main.client_id
 
     # Health check endpoint for container
     health_check_path = "/health"
@@ -211,11 +213,6 @@ resource "azurerm_linux_web_app" "main" {
     # Azure Storage configuration (using Managed Identity, no connection string needed)
     # The app's DefaultAzureCredential will use the assigned identity
     "AZURE_CLIENT_ID" = azurerm_user_assigned_identity.main.client_id
-
-    # Docker/ACR configuration
-    "DOCKER_REGISTRY_SERVER_URL"      = "https://${azurerm_container_registry.main.login_server}"
-    "DOCKER_REGISTRY_SERVER_USERNAME" = azurerm_container_registry.main.admin_username
-    "DOCKER_REGISTRY_SERVER_PASSWORD" = azurerm_container_registry.main.admin_password
   }
 
   tags = var.tags
