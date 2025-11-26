@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Video Annotation Template
+  
+  Use this template for classifying and annotating video content.
+  Supports content type classification, quality rating, and description notes.
+  
+  Customization:
+  - Change categories for your video domain
+  - Add scene detection labels
+  - Add action recognition categories
+  - Add content moderation flags
+  - Add timestamp-based annotations via text input
+-->
+<LabelingInterface title="Video Annotation" 
+                   description="Watch the video and classify its content. Note any important timestamps or scenes.">
+  <DataSource type="video" field="url" />
+  
+  <Labels>
+    <Label name="content_type" type="choices" required="true" multiSelect="false">
+      <Option value="educational" label="Educational" hotkey="1" color="#3B82F6" />
+      <Option value="entertainment" label="Entertainment" hotkey="2" color="#F59E0B" />
+      <Option value="news" label="News/Information" hotkey="3" color="#10B981" />
+      <Option value="advertisement" label="Advertisement" hotkey="4" color="#EF4444" />
+      <Option value="other" label="Other" hotkey="5" color="#6B7280" />
+    </Label>
+    
+    <Label name="quality" type="rating" required="false" min="1" max="5" />
+    
+    <Label name="description" type="text-input" required="false" />
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>

@@ -2,6 +2,8 @@
 
 A simple containerized and Azure-backed data labeling solution inspired by Label Studio. Designed to run on Azure behind Azure B2C authentication.
 
+📖 **[View Full Documentation](https://raca159.github.io/simple-label-maker/)**
+
 ## Features
 
 - **TypeScript Web Application**: Modern, responsive UI for data labeling
@@ -12,6 +14,14 @@ A simple containerized and Azure-backed data labeling solution inspired by Label
 - **Multiple Data Types**: Support for images, text, audio, and video
 - **Keyboard Shortcuts**: Fast labeling with configurable hotkeys
 - **Progress Tracking**: Visual progress bar and annotation counting
+- **Ready-to-Use Templates**: Pre-built XML templates for common labeling tasks
+
+## Documentation
+
+- [Getting Started](docs/index.md) - Overview and quick start
+- [Labeling Schemas Guide](docs/labeling-schemas.md) - Complete UI.xml reference
+- [Templates Guide](docs/templates.md) - Ready-to-use template documentation
+- [Custom Schemas Guide](docs/custom-schemas.md) - Create your own labeling interfaces
 
 ## Quick Start
 
@@ -84,7 +94,29 @@ docker run -p 3000:3000 simple-label-maker
 
 ### UI Schema (`config/UI.xml`)
 
-Define your labeling interface using XML:
+Define your labeling interface using XML. You can start with one of the pre-built templates:
+
+```bash
+# Use a template for your labeling task
+cp config/templates/image-classification.xml config/UI.xml
+```
+
+#### Available Templates
+
+| Template | Data Type | Use Case |
+|----------|-----------|----------|
+| `image-classification.xml` | Image | Classify images into categories |
+| `text-sentiment.xml` | Text | Sentiment analysis of text |
+| `audio-classification.xml` | Audio | Classify audio content |
+| `video-annotation.xml` | Video | Annotate video content |
+| `time-series-ecg.xml` | Time-Series | ECG/medical signal classification |
+| `time-series-sensor.xml` | Time-Series | IoT/sensor data classification |
+| `multi-label-classification.xml` | Image | Multiple labels per image |
+| `bounding-box.xml` | Image | Object detection (planned) |
+
+See the [Templates Guide](docs/templates.md) for detailed documentation on each template.
+
+#### Example Schema
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -297,7 +329,22 @@ simple-label-maker/
 │       └── app.js         # Frontend JavaScript
 ├── config/
 │   ├── project.json       # Project configuration
-│   └── UI.xml             # Labeling interface schema
+│   ├── UI.xml             # Active labeling interface schema
+│   └── templates/         # Ready-to-use schema templates
+│       ├── image-classification.xml
+│       ├── text-sentiment.xml
+│       ├── audio-classification.xml
+│       ├── video-annotation.xml
+│       ├── time-series-ecg.xml
+│       ├── time-series-sensor.xml
+│       ├── multi-label-classification.xml
+│       └── bounding-box.xml
+├── docs/                  # Documentation (GitHub Pages)
+│   ├── _config.yml        # Jekyll configuration
+│   ├── index.md           # Documentation home
+│   ├── labeling-schemas.md
+│   ├── templates.md
+│   └── custom-schemas.md
 ├── Dockerfile             # Docker build file
 ├── docker-compose.yml     # Docker Compose configuration
 ├── package.json           # Node.js dependencies

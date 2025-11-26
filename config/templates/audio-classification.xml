@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Audio Classification Template
+  
+  Use this template for classifying audio files (speech, music, sounds).
+  Supports genre classification, quality rating, and transcription notes.
+  
+  Customization:
+  - Change categories for your audio domain (music genres, speech types, etc.)
+  - Add speaker identification labels
+  - Add emotion detection categories
+  - Add transcription text input for speech-to-text tasks
+-->
+<LabelingInterface title="Audio Classification" 
+                   description="Classify the audio content. Listen to the full audio before selecting a category.">
+  <DataSource type="audio" field="url" />
+  
+  <Labels>
+    <Label name="category" type="choices" required="true" multiSelect="false">
+      <Option value="speech" label="Speech" hotkey="1" color="#3B82F6" />
+      <Option value="music" label="Music" hotkey="2" color="#8B5CF6" />
+      <Option value="ambient" label="Ambient/Background" hotkey="3" color="#10B981" />
+      <Option value="noise" label="Noise/Static" hotkey="4" color="#EF4444" />
+      <Option value="silence" label="Silence" hotkey="5" color="#6B7280" />
+    </Label>
+    
+    <Label name="quality" type="rating" required="false" min="1" max="5" />
+    
+    <Label name="transcription" type="text-input" required="false" />
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>

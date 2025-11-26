@@ -1,0 +1,26 @@
+title: Simple Label Maker
+description: A simple containerized and Azure-backed data labeling solution
+baseurl: "/simple-label-maker"
+url: "https://raca159.github.io"
+
+theme: jekyll-theme-cayman
+
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+exclude:
+  - node_modules
+  - package.json
+  - package-lock.json
+  - Dockerfile
+  - docker-compose.yml
+  - tsconfig.json
+  - src
+  - public
+  - config
+  - dist
+  - "*.log"
