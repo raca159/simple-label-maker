@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Label Maker</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">🏷️ Simple Label Maker</h1>
+        <span class="project-name" id="projectName">Loading...</span>
+      </div>
+      <div class="header-right">
+        <div class="progress-info" id="progressInfo">
+          <span id="progressText">0 / 0</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="userBtn">Demo User</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Data View Panel -->
+      <div class="data-panel" id="dataPanel">
+        <div class="panel-header">
+          <h2>Data</h2>
+          <span class="sample-id" id="sampleId">-</span>
+        </div>
+        <div class="data-content" id="dataContent">
+          <div class="loading-placeholder">
+            <div class="spinner"></div>
+            <p>Loading sample...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Labeling Panel -->
+      <div class="label-panel" id="labelPanel">
+        <div class="panel-header">
+          <h2 id="labelingTitle">Labels</h2>
+        </div>
+        <div class="labeling-interface" id="labelingInterface">
+          <!-- Dynamic labeling controls will be inserted here -->
+        </div>
+        
+        <!-- Navigation and Submit -->
+        <div class="action-buttons">
+          <div class="nav-buttons">
+            <button class="btn btn-outline" id="prevBtn" disabled>
+              ← Previous
+            </button>
+            <button class="btn btn-outline" id="nextBtn" disabled>
+              Next →
+            </button>
+          </div>
+          <div class="submit-buttons">
+            <button class="btn btn-secondary" id="skipBtn">Skip</button>
+            <button class="btn btn-primary" id="submitBtn">Submit</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Instructions Panel (collapsible) -->
+    <aside class="instructions-panel" id="instructionsPanel">
+      <div class="panel-header">
+        <h3>Instructions</h3>
+        <button class="toggle-btn" id="toggleInstructions">−</button>
+      </div>
+      <div class="instructions-content" id="instructionsContent">
+        <p id="projectDescription">Loading project description...</p>
+      </div>
+    </aside>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

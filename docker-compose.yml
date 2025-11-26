@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  label-maker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      # Azure Storage (optional - for production use)
+      # - AZURE_STORAGE_CONNECTION_STRING=your-connection-string
+      # Custom config paths (optional)
+      # - CONFIG_PATH=/app/config/project.json
+      # - UI_XML_PATH=/app/config/UI.xml
+    volumes:
+      # Mount custom config (optional)
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

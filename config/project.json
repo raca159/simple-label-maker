@@ -1,0 +1,67 @@
+{
+  "projectId": "sample-project",
+  "projectName": "Sample Image Classification",
+  "description": "Classify images into categories. Use the number keys (1-4) as shortcuts or click on the labels to select them.",
+  "azureStorage": {
+    "accountName": "your-storage-account",
+    "containerName": "labeling-data",
+    "dataPath": "samples",
+    "annotationsPath": "annotations"
+  },
+  "authentication": {
+    "azureB2C": {
+      "tenantId": "your-tenant-id",
+      "clientId": "your-client-id",
+      "authority": "https://your-tenant.b2clogin.com/your-tenant.onmicrosoft.com/B2C_1_signupsignin",
+      "redirectUri": "http://localhost:3000/auth/callback",
+      "scopes": ["openid", "profile", "email"]
+    }
+  },
+  "samples": [
+    {
+      "id": "sample-001",
+      "fileName": "image1.jpg",
+      "type": "image",
+      "metadata": {
+        "source": "demo-dataset",
+        "batch": "batch-1"
+      }
+    },
+    {
+      "id": "sample-002",
+      "fileName": "image2.jpg",
+      "type": "image",
+      "metadata": {
+        "source": "demo-dataset",
+        "batch": "batch-1"
+      }
+    },
+    {
+      "id": "sample-003",
+      "fileName": "image3.jpg",
+      "type": "image",
+      "metadata": {
+        "source": "demo-dataset",
+        "batch": "batch-1"
+      }
+    },
+    {
+      "id": "sample-004",
+      "fileName": "document1.txt",
+      "type": "text",
+      "metadata": {
+        "source": "demo-dataset",
+        "batch": "batch-2"
+      }
+    },
+    {
+      "id": "sample-005",
+      "fileName": "image4.jpg",
+      "type": "image",
+      "metadata": {
+        "source": "demo-dataset",
+        "batch": "batch-2"
+      }
+    }
+  ]
+}
