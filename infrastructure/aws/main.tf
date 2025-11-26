@@ -248,13 +248,15 @@ resource "aws_security_group" "ecs" {
   description = "Security group for ECS tasks"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    description     = "Allow traffic from ALB"
-    from_port       = var.container_port
-    to_port         = var.container_port
-    protocol        = "tcp"
-    security_groups = var.enable_alb ? [aws_security_group.alb[0].id] : []
-    cidr_blocks     = var.enable_alb ? [] : ["0.0.0.0/0"]
+  dynamic "ingress" {
+    for_each = var.enable_alb ? [1] : []
+    content {
+      description     = "Allow traffic from ALB"
+      from_port       = var.container_port
+      to_port         = var.container_port
+      protocol        = "tcp"
+      security_groups = [aws_security_group.alb[0].id]
+    }
   }
 
   egress {
@@ -490,6 +492,8 @@ resource "aws_ecs_task_definition" "main" {
         }
       }
 
+      # Health check using wget - consistent with the Dockerfile HEALTHCHECK
+      # The node:20-alpine image includes wget via busybox
       healthCheck = {
         command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${var.container_port}/health || exit 1"]
         interval    = 30

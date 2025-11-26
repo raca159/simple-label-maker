@@ -6,6 +6,13 @@ This Terraform module provisions the essential AWS infrastructure required to ru
 
 This module creates a complete AWS deployment environment with minimal configuration, enabling users to deploy the web application with a single `terraform apply`. It mirrors the architecture and functionality of the Azure deployment while using AWS-native services.
 
+> **Important:** This module provisions infrastructure only. To fully use AWS, the application code requires additional changes:
+> 1. Implement an AWS storage service (`src/services/awsStorage.ts`) similar to `azureStorage.ts`
+> 2. Update `src/types/index.ts` to add `awsStorage` configuration type
+> 3. Update the application to detect and use AWS configuration
+>
+> See the [AWS Integration](#aws-integration) section for implementation details.
+
 ## Azure to AWS Resource Mapping
 
 | Azure Resource | AWS Equivalent | Purpose |
@@ -185,7 +192,7 @@ Update your `config/project.json` with the AWS storage configuration:
 }
 ```
 
-> **Note:** The application will need an AWS storage service implementation similar to `azureStorage.ts`. See the [AWS Integration](#aws-integration) section.
+> **Important:** This configuration format requires code changes to support AWS storage. The current application only supports `azureStorage`. See the [AWS Integration](#aws-integration) section for implementation details.
 
 ### 7. Access Your Application
 

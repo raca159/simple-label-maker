@@ -153,9 +153,12 @@ output "ecs_security_group_id" {
 # -----------------------------------------------------------------------------
 # Configuration Helpers (Maps to Azure project_json_azure_storage)
 # -----------------------------------------------------------------------------
+# Note: Using this configuration requires implementing an AWS storage service
+# in the application code (similar to src/services/azureStorage.ts) and
+# updating the ProjectConfig type in src/types/index.ts to support awsStorage.
 
 output "project_json_aws_storage" {
-  description = "AWS storage configuration block for project.json (equivalent to Azure azureStorage)"
+  description = "AWS storage configuration block for project.json. Note: Requires application code changes to support AWS storage alongside Azure storage."
   value = {
     bucketName      = aws_s3_bucket.main.id
     region          = var.aws_region

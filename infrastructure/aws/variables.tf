@@ -59,8 +59,8 @@ variable "s3_bucket_name" {
   default     = ""
 
   validation {
-    condition     = var.s3_bucket_name == "" || can(regex("^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$", var.s3_bucket_name))
-    error_message = "S3 bucket name must be 3-63 lowercase letters, numbers, hyphens, and periods."
+    condition     = var.s3_bucket_name == "" || can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", var.s3_bucket_name)) && length(var.s3_bucket_name) >= 3 && length(var.s3_bucket_name) <= 63
+    error_message = "S3 bucket name must be 3-63 lowercase letters, numbers, and hyphens only."
   }
 }
 
