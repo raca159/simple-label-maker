@@ -28,3 +28,10 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
