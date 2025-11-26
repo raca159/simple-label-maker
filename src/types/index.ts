@@ -24,7 +24,7 @@ export interface ProjectConfig {
 export interface SampleInfo {
   id: string;
   fileName: string;
-  type: 'image' | 'text' | 'audio' | 'video';
+  type: 'image' | 'text' | 'audio' | 'video' | 'time-series';
   metadata?: Record<string, string>;
 }
 
@@ -40,18 +40,30 @@ export interface UISchema {
 }
 
 export interface DataSource {
-  type: 'image' | 'text' | 'audio' | 'video';
+  type: 'image' | 'text' | 'audio' | 'video' | 'time-series';
   field: string;
 }
 
 export interface LabelConfig {
   name: string;
-  type: 'classification' | 'bounding-box' | 'polygon' | 'text-input' | 'choices' | 'rating';
+  type: 'classification' | 'bounding-box' | 'polygon' | 'text-input' | 'choices' | 'rating' | 'time-series';
   required?: boolean;
   options?: LabelOption[];
   min?: number;
   max?: number;
   multiSelect?: boolean;
+  // Time-series specific fields
+  count?: number;
+  axis?: AxisConfig;
+  seriesOptions?: LabelOption[];
+  globalOptions?: LabelOption[];
+  globalLabel?: string;
+  commentLabel?: string;
+}
+
+export interface AxisConfig {
+  min?: number;
+  max?: number;
 }
 
 export interface LabelOption {
@@ -89,7 +101,14 @@ export type AnnotationValue =
   | BoundingBox 
   | BoundingBox[] 
   | Polygon 
-  | Polygon[];
+  | Polygon[]
+  | TimeSeriesAnnotation;
+
+export interface TimeSeriesAnnotation {
+  seriesLabels: Record<string, string>;
+  globalLabel: string;
+  comment?: string;
+}
 
 export interface BoundingBox {
   x: number;

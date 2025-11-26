@@ -7,6 +7,8 @@ class LabelMaker {
     this.uiSchema = null;
     this.projectInfo = null;
     this.annotations = {};
+    this.currentSeriesData = null;
+    this.timeSeriesCharts = [];
     
     this.init();
   }
@@ -119,6 +121,10 @@ class LabelMaker {
       dataContent.innerHTML = `<audio controls src="${sampleData.url}"></audio>`;
     } else if (sampleData.type === 'video') {
       dataContent.innerHTML = `<video controls src="${sampleData.url}"></video>`;
+    } else if (sampleData.type === 'time-series') {
+      // Store series data for later rendering
+      this.currentSeriesData = sampleData.seriesData;
+      dataContent.innerHTML = '<div class="time-series-placeholder">Time series data loaded. See charts below.</div>';
     }
   }
 
@@ -127,6 +133,12 @@ class LabelMaker {
     const labels = this.uiSchema.labelingInterface.labels;
     
     container.innerHTML = '';
+    
+    // Destroy any existing charts
+    if (this.timeSeriesCharts) {
+      this.timeSeriesCharts.forEach(chart => chart.destroy());
+    }
+    this.timeSeriesCharts = [];
     
     labels.forEach(label => {
       const labelGroup = document.createElement('div');
@@ -153,6 +165,9 @@ class LabelMaker {
           break;
         case 'text-input':
           labelGroup.appendChild(this.renderTextInput(label));
+          break;
+        case 'time-series':
+          labelGroup.appendChild(this.renderTimeSeries(label));
           break;
         default:
           labelGroup.appendChild(this.renderChoices(label));
@@ -248,12 +263,242 @@ class LabelMaker {
     return container;
   }
 
+  renderTimeSeries(label) {
+    const container = document.createElement('div');
+    container.className = 'time-series-container';
+    container.dataset.labelName = label.name;
+    
+    const seriesData = this.currentSeriesData || [];
+    const seriesCount = label.count || seriesData.length || 10;
+    const seriesOptions = label.seriesOptions || [
+      { value: 'AF', label: 'AF', color: '#FF5733' },
+      { value: 'Noise', label: 'Noise', color: '#FFC300' },
+      { value: 'None', label: 'None', color: '#C0C0C0' }
+    ];
+    const globalOptions = label.globalOptions || [
+      { value: 'AF', label: 'AF', color: '#FF5733' },
+      { value: 'nonAF', label: 'Non-AF', color: '#33FF57' }
+    ];
+    const axisConfig = label.axis || {};
+
+    // Render individual series charts with label controls
+    for (let i = 0; i < seriesCount; i++) {
+      const seriesItem = document.createElement('div');
+      seriesItem.className = 'series-item';
+      seriesItem.dataset.seriesIndex = i;
+
+      // Series header
+      const seriesHeader = document.createElement('div');
+      seriesHeader.className = 'series-header';
+      seriesHeader.innerHTML = `<span class="series-label">Series ${i + 1}</span>`;
+
+      // Series label selector
+      const selectContainer = document.createElement('div');
+      selectContainer.className = 'series-select-container';
+      const select = document.createElement('select');
+      select.className = 'series-select';
+      select.dataset.seriesIndex = i;
+      select.innerHTML = seriesOptions.map(opt => 
+        `<option value="${opt.value}" style="color: ${opt.color || '#000'}">${opt.label}</option>`
+      ).join('');
+      selectContainer.appendChild(select);
+      seriesHeader.appendChild(selectContainer);
+      seriesItem.appendChild(seriesHeader);
+
+      // Chart canvas
+      const chartContainer = document.createElement('div');
+      chartContainer.className = 'chart-container';
+      const canvas = document.createElement('canvas');
+      canvas.id = `chart-${label.name}-${i}`;
+      canvas.className = 'series-chart';
+      chartContainer.appendChild(canvas);
+      seriesItem.appendChild(chartContainer);
+
+      container.appendChild(seriesItem);
+
+      // Render chart with data
+      const data = seriesData[i] || this.generateDemoSeriesData();
+      this.renderSeriesChart(canvas, data, i, axisConfig);
+    }
+
+    // Global classification section
+    const globalSection = document.createElement('div');
+    globalSection.className = 'global-classification-section';
+    
+    const globalTitle = document.createElement('div');
+    globalTitle.className = 'global-title';
+    globalTitle.textContent = label.globalLabel || 'Sample Classification';
+    globalSection.appendChild(globalTitle);
+
+    const globalOptionsContainer = document.createElement('div');
+    globalOptionsContainer.className = 'global-options';
+    globalOptions.forEach((opt, idx) => {
+      const radioLabel = document.createElement('label');
+      radioLabel.className = 'global-option';
+      radioLabel.innerHTML = `
+        <input type="radio" name="global-${label.name}" value="${opt.value}" />
+        <span class="global-option-label" style="background-color: ${opt.color || '#ddd'}">${opt.label}</span>
+        ${opt.hotkey ? `<span class="choice-hotkey">${opt.hotkey}</span>` : ''}
+      `;
+      globalOptionsContainer.appendChild(radioLabel);
+    });
+    globalSection.appendChild(globalOptionsContainer);
+    container.appendChild(globalSection);
+
+    // Comment section
+    const commentSection = document.createElement('div');
+    commentSection.className = 'comment-section';
+    
+    const commentTitle = document.createElement('div');
+    commentTitle.className = 'comment-title';
+    commentTitle.textContent = label.commentLabel || 'Comments/Observations';
+    commentSection.appendChild(commentTitle);
+
+    const commentTextarea = document.createElement('textarea');
+    commentTextarea.className = 'comment-textarea';
+    commentTextarea.name = `comment-${label.name}`;
+    commentTextarea.placeholder = 'Enter your observations...';
+    commentSection.appendChild(commentTextarea);
+    
+    container.appendChild(commentSection);
+
+    return container;
+  }
+
+  generateDemoSeriesData() {
+    const data = [];
+    for (let j = 0; j < 100; j++) {
+      data.push(Math.sin(j * 0.1) * 0.5 + (Math.random() - 0.5) * 0.2);
+    }
+    return data;
+  }
+
+  renderSeriesChart(canvas, data, seriesIndex, axisConfig) {
+    // Check if Chart.js is available
+    if (typeof Chart === 'undefined') {
+      // Fallback: render a simple canvas visualization
+      this.renderSimpleChart(canvas, data, axisConfig);
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    const labels = data.map((_, i) => i);
+    
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: `Series ${seriesIndex + 1}`,
+          data: data,
+          borderColor: '#4f46e5',
+          backgroundColor: 'rgba(79, 70, 229, 0.1)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.1,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: false
+            },
+            ticks: {
+              maxTicksLimit: 5
+            }
+          },
+          y: {
+            display: true,
+            min: axisConfig.min !== undefined ? axisConfig.min : undefined,
+            max: axisConfig.max !== undefined ? axisConfig.max : undefined,
+            ticks: {
+              maxTicksLimit: 5
+            }
+          }
+        }
+      }
+    });
+
+    this.timeSeriesCharts.push(chart);
+  }
+
+  renderSimpleChart(canvas, data, axisConfig) {
+    const ctx = canvas.getContext('2d');
+    const width = canvas.parentElement.clientWidth || 300;
+    const height = canvas.parentElement.clientHeight || 100;
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Calculate data bounds
+    let minVal = axisConfig.min !== undefined ? axisConfig.min : Math.min(...data);
+    let maxVal = axisConfig.max !== undefined ? axisConfig.max : Math.max(...data);
+    const range = maxVal - minVal || 1;
+    
+    // Draw background
+    ctx.fillStyle = 'rgba(79, 70, 229, 0.1)';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw the line
+    ctx.strokeStyle = '#4f46e5';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    
+    for (let i = 0; i < data.length; i++) {
+      const x = (i / (data.length - 1)) * width;
+      const y = height - ((data[i] - minVal) / range) * height;
+      
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    
+    ctx.stroke();
+  }
+
   collectLabels() {
     const labels = {};
     const labelGroups = document.querySelectorAll('.label-group');
     
     labelGroups.forEach(group => {
       const labelName = group.dataset.labelName;
+      
+      // Check for time-series container
+      const timeSeriesContainer = group.querySelector('.time-series-container');
+      if (timeSeriesContainer) {
+        const seriesLabels = {};
+        const seriesSelects = timeSeriesContainer.querySelectorAll('.series-select');
+        seriesSelects.forEach(select => {
+          const index = select.dataset.seriesIndex;
+          seriesLabels[`series_${index}`] = select.value;
+        });
+
+        const globalRadio = timeSeriesContainer.querySelector(`input[name="global-${labelName}"]:checked`);
+        const globalLabel = globalRadio ? globalRadio.value : '';
+
+        const commentTextarea = timeSeriesContainer.querySelector('.comment-textarea');
+        const comment = commentTextarea ? commentTextarea.value.trim() : '';
+
+        labels[labelName] = {
+          seriesLabels,
+          globalLabel,
+          comment
+        };
+        return;
+      }
       
       // Check for choices
       const selectedChoices = group.querySelectorAll('.choice-option.selected');
@@ -283,7 +528,15 @@ class LabelMaker {
       .filter(l => l.required)
       .map(l => l.name);
     
-    const missingLabels = requiredLabels.filter(name => !labels[name]);
+    const missingLabels = requiredLabels.filter(name => {
+      const value = labels[name];
+      if (!value) return true;
+      // For time-series, check globalLabel is set
+      if (typeof value === 'object' && value.seriesLabels !== undefined) {
+        return !value.globalLabel;
+      }
+      return false;
+    });
     
     return {
       valid: missingLabels.length === 0,
@@ -355,6 +608,38 @@ class LabelMaker {
     Object.entries(savedLabels).forEach(([labelName, value]) => {
       const group = document.querySelector(`[data-label-name="${labelName}"]`);
       if (!group) return;
+      
+      // Restore time-series labels
+      if (typeof value === 'object' && value.seriesLabels !== undefined) {
+        const timeSeriesContainer = group.querySelector('.time-series-container');
+        if (timeSeriesContainer) {
+          // Restore series labels
+          Object.entries(value.seriesLabels).forEach(([seriesKey, seriesValue]) => {
+            const index = seriesKey.replace('series_', '');
+            const select = timeSeriesContainer.querySelector(`.series-select[data-series-index="${index}"]`);
+            if (select) {
+              select.value = seriesValue;
+            }
+          });
+          
+          // Restore global label
+          if (value.globalLabel) {
+            const globalRadio = timeSeriesContainer.querySelector(`input[name="global-${labelName}"][value="${value.globalLabel}"]`);
+            if (globalRadio) {
+              globalRadio.checked = true;
+            }
+          }
+          
+          // Restore comment
+          if (value.comment) {
+            const commentTextarea = timeSeriesContainer.querySelector('.comment-textarea');
+            if (commentTextarea) {
+              commentTextarea.value = value.comment;
+            }
+          }
+        }
+        return;
+      }
       
       // Restore choices
       if (typeof value === 'string' || Array.isArray(value)) {
