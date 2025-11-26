@@ -4,6 +4,21 @@ import { UISchema, LabelConfig, DataSource, LayoutConfig, LabelOption, AxisConfi
 
 const parseXml = promisify(parseString);
 
+// Common type alias for parsed options
+type ParsedOptionArray = Array<{
+  $?: {
+    value?: string;
+    label?: string;
+    hotkey?: string;
+    color?: string;
+  };
+}>;
+
+// Type for nested options container (SeriesOptions, GlobalOptions)
+type NestedOptionsArray = Array<{
+  Option?: ParsedOptionArray;
+}>;
+
 interface ParsedXML {
   LabelingInterface?: {
     $?: {
@@ -41,34 +56,9 @@ interface ParsedLabel {
     globalLabel?: string;
     commentLabel?: string;
   };
-  Option?: Array<{
-    $?: {
-      value?: string;
-      label?: string;
-      hotkey?: string;
-      color?: string;
-    };
-  }>;
-  SeriesOptions?: Array<{
-    Option?: Array<{
-      $?: {
-        value?: string;
-        label?: string;
-        hotkey?: string;
-        color?: string;
-      };
-    }>;
-  }>;
-  GlobalOptions?: Array<{
-    Option?: Array<{
-      $?: {
-        value?: string;
-        label?: string;
-        hotkey?: string;
-        color?: string;
-      };
-    }>;
-  }>;
+  Option?: ParsedOptionArray;
+  SeriesOptions?: NestedOptionsArray;
+  GlobalOptions?: NestedOptionsArray;
   Axis?: Array<{
     $?: {
       min?: string;
@@ -149,7 +139,7 @@ export class UISchemaParser {
     });
   }
 
-  private parseOptions(options?: Array<{ $?: { value?: string; label?: string; hotkey?: string; color?: string } }>): LabelOption[] | undefined {
+  private parseOptions(options?: ParsedOptionArray): LabelOption[] | undefined {
     if (!options || options.length === 0) {
       return undefined;
     }
@@ -172,12 +162,12 @@ export class UISchemaParser {
     };
   }
 
-  private parseSeriesOptions(seriesOptionsArray?: Array<{ Option?: Array<{ $?: { value?: string; label?: string; hotkey?: string; color?: string } }> }>): LabelOption[] | undefined {
+  private parseSeriesOptions(seriesOptionsArray?: NestedOptionsArray): LabelOption[] | undefined {
     const seriesOptions = seriesOptionsArray?.[0]?.Option;
     return this.parseOptions(seriesOptions);
   }
 
-  private parseGlobalOptions(globalOptionsArray?: Array<{ Option?: Array<{ $?: { value?: string; label?: string; hotkey?: string; color?: string } }> }>): LabelOption[] | undefined {
+  private parseGlobalOptions(globalOptionsArray?: NestedOptionsArray): LabelOption[] | undefined {
     const globalOptions = globalOptionsArray?.[0]?.Option;
     return this.parseOptions(globalOptions);
   }

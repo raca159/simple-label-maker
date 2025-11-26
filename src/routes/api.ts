@@ -112,10 +112,15 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
 
     // For Azure mode, check if it's time-series
     if (sample.type === 'time-series') {
-      const data = await storageService.getSampleData(sample);
-      const content = data.toString('utf-8');
-      const parsed = JSON.parse(content);
-      res.json({ seriesData: parsed.seriesData ?? parsed, type: sample.type });
+      try {
+        const data = await storageService.getSampleData(sample);
+        const content = data.toString('utf-8');
+        const parsed = JSON.parse(content);
+        res.json({ seriesData: parsed.seriesData ?? parsed, type: sample.type });
+      } catch (parseError) {
+        res.status(400).json({ error: 'Invalid time-series data format. Expected valid JSON.' });
+        return;
+      }
     } else {
       const url = await storageService.getSampleUrl(sample);
       res.json({ url, type: sample.type });

@@ -441,6 +441,16 @@ class LabelMaker {
     canvas.width = width;
     canvas.height = height;
     
+    // Handle edge case of single data point or empty data
+    if (!data || data.length === 0) {
+      ctx.fillStyle = '#ddd';
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#666';
+      ctx.textAlign = 'center';
+      ctx.fillText('No data', width / 2, height / 2);
+      return;
+    }
+    
     // Calculate data bounds
     let minVal = axisConfig.min !== undefined ? axisConfig.min : Math.min(...data);
     let maxVal = axisConfig.max !== undefined ? axisConfig.max : Math.max(...data);
@@ -455,8 +465,9 @@ class LabelMaker {
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     
+    const divisor = data.length > 1 ? data.length - 1 : 1;
     for (let i = 0; i < data.length; i++) {
-      const x = (i / (data.length - 1)) * width;
+      const x = (i / divisor) * width;
       const y = height - ((data[i] - minVal) / range) * height;
       
       if (i === 0) {
