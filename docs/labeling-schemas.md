@@ -14,6 +14,10 @@ The UI.xml file defines your labeling interface using a hierarchical XML structu
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <LabelingInterface title="Task Title" description="Instructions">
+  <Style>
+    /* Optional: Custom CSS styles */
+  </Style>
+  
   <DataSource type="image" field="imageUrl" />
   
   <Labels>
@@ -271,6 +275,102 @@ Use `type="time-series"` for multi-channel time series annotation.
   }
 }
 ```
+
+---
+
+## Style Element
+
+The `<Style>` element allows you to add custom CSS to customize the appearance of the labeling interface.
+
+### Overview
+
+Use the `<Style>` element to inject CSS rules that will be applied to the labeling interface. This is useful for:
+
+- Customizing colors, fonts, and spacing
+- Adjusting the layout of specific components
+- Creating branded labeling experiences
+- Fine-tuning the visual appearance for specific use cases
+
+### Basic Usage
+
+Add the `<Style>` element inside your `<LabelingInterface>`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<LabelingInterface title="My Task" description="Instructions...">
+  <Style>
+    .global-classification-section {
+      background-color: #f0f9ff;
+      border: 1px solid #0ea5e9;
+      border-radius: 8px;
+    }
+  </Style>
+  
+  <DataSource type="image" field="imageUrl" />
+  <Labels>
+    <!-- ... -->
+  </Labels>
+</LabelingInterface>
+```
+
+### Example: Custom Time-Series Styling
+
+```xml
+<Style>
+  /* Custom styling for the labeling interface */
+  .global-classification-section {
+    background-color: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .global-title {
+    color: #0369a1;
+    font-weight: 600;
+  }
+
+  .comment-section {
+    background-color: #fefce8;
+    border: 1px solid #eab308;
+    border-radius: 8px;
+    padding: 12px;
+  }
+  
+  .series-option-btn {
+    border-radius: 4px;
+    font-size: 12px;
+  }
+</Style>
+```
+
+### Available CSS Classes
+
+Common CSS classes you can target:
+
+| Class | Description |
+|-------|-------------|
+| `.label-group` | Container for each label section |
+| `.choices-container` | Container for choice options |
+| `.choice-option` | Individual choice button |
+| `.rating-container` | Star rating container |
+| `.time-series-container` | Time-series labeling container |
+| `.global-classification-section` | Global classification area |
+| `.global-options` | Global option buttons container |
+| `.series-row-with-chart` | Individual series row |
+| `.comment-section` | Comment/notes section |
+| `.comment-textarea` | Comment text area |
+
+### Limitations
+
+- Custom styles are applied after the default styles, so they can override defaults
+- Avoid using `@import` or external URLs for security reasons
+- JavaScript cannot be included in the Style block (CSS only)
+
+### Security Considerations
+
+The `<Style>` element is intended for use by project administrators who have access to the `UI.xml` configuration file. The CSS content is injected directly into the page, so ensure that only trusted users can modify the `UI.xml` file.
 
 ---
 
