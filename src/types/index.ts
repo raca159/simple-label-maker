@@ -39,6 +39,7 @@ export interface UISchema {
     dataSource: DataSource;
     labels: LabelConfig[];
     layout?: LayoutConfig;
+    customStyles?: string;
   };
 }
 

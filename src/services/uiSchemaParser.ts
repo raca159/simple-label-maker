@@ -41,6 +41,7 @@ interface ParsedXML {
         showInstructions?: string;
       };
     }>;
+    Style?: string[];
   };
 }
 
@@ -90,9 +91,23 @@ export class UISchemaParser {
         description: li.$?.description,
         dataSource: this.parseDataSource(li.DataSource),
         labels: this.parseLabels(li.Labels),
-        layout: this.parseLayout(li.Layout)
+        layout: this.parseLayout(li.Layout),
+        customStyles: this.parseCustomStyles(li.Style)
       }
     };
+  }
+
+  private parseCustomStyles(styleArray?: string[]): string | undefined {
+    if (!styleArray || styleArray.length === 0) {
+      return undefined;
+    }
+    // The Style element content is in the first array element
+    // Trim whitespace but preserve the CSS content
+    const styles = styleArray[0];
+    if (typeof styles === 'string' && styles.trim()) {
+      return styles.trim();
+    }
+    return undefined;
   }
 
   private parseDataSource(dataSources?: Array<{ $?: { type?: string; field?: string } }>): DataSource {
