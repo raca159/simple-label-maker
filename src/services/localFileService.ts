@@ -1,0 +1,82 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import * as https from 'https';
+import * as http from 'http';
+import { SampleInfo, ProjectConfig } from '../types';
+
+/**
+ * Service for reading sample data from local filesystem or blob storage URLs
+ */
+export class LocalFileService {
+  private dataPath: string;
+
+  constructor(dataPath: string = './config') {
+    this.dataPath = dataPath;
+  }
+
+  /**
+   * Fetch data from a blob storage URL
+   */
+  private async fetchFromBlobUrl(url: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const urlObj = new URL(url);
+      const client = url.startsWith('https') ? https : http;
+
+      const request = client.get(urlObj, (response) => {
+        if (!response.statusCode || response.statusCode >= 400) {
+          reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+          return;
+        }
+
+        let data = '';
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        response.on('end', () => {
+          resolve(data);
+        });
+      });
+
+      request.on('error', (error) => {
+        reject(new Error(`Failed to fetch from blob URL ${url}: ${error.message}`));
+      });
+
+      request.setTimeout(30000, () => {
+        request.destroy();
+        reject(new Error(`Timeout fetching from blob URL ${url}`));
+      });
+    });
+  }
+
+  /**
+   * Get data for a specific sample from local filesystem or blob storage URL
+   */
+  async getSampleData(sample: SampleInfo, config?: ProjectConfig): Promise<string> {
+    // Check if fileName is a full blob URL
+    if (sample.fileName && sample.fileName.startsWith('http')) {
+      return this.fetchFromBlobUrl(sample.fileName);
+    }
+
+    // Otherwise, use local filesystem
+    const basePath = config?.azureStorage?.dataPath || 'config';
+    const filePath = path.join(this.dataPath, basePath, sample.fileName);
+    
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      return content;
+    } catch (error) {
+      throw new Error(`Failed to read sample file at ${filePath}: ${sample.fileName}`);
+    }
+  }
+
+  /**
+   * Get a URL/path for accessing a sample (for images)
+   */
+  async getSampleUrl(sample: SampleInfo): Promise<string> {
+    // For local files, return a file path or URL
+    return `/files/${sample.fileName}`;
+  }
+}
+
+export const localFileService = new LocalFileService();

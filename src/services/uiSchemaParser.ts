@@ -55,6 +55,10 @@ interface ParsedLabel {
     count?: string;
     globalLabel?: string;
     commentLabel?: string;
+    cssClass?: string;
+    showSeriesTitles?: string;
+    xAxisTickSize?: string;
+    buttonSize?: string;
   };
   Option?: ParsedOptionArray;
   SeriesOptions?: NestedOptionsArray;
@@ -122,6 +126,7 @@ export class UISchemaParser {
         multiSelect: attrs.multiSelect === 'true',
         min: attrs.min ? parseInt(attrs.min, 10) : undefined,
         max: attrs.max ? parseInt(attrs.max, 10) : undefined,
+        cssClass: attrs.cssClass,
         options: this.parseOptions(label.Option)
       };
 
@@ -130,6 +135,9 @@ export class UISchemaParser {
         config.count = attrs.count ? parseInt(attrs.count, 10) : 10;
         config.globalLabel = attrs.globalLabel;
         config.commentLabel = attrs.commentLabel;
+        config.showSeriesTitles = attrs.showSeriesTitles === 'true';
+        config.xAxisTickSize = attrs.xAxisTickSize ? parseInt(attrs.xAxisTickSize, 10) : 11;
+        config.buttonSize = attrs.buttonSize as 'small' | 'medium' | 'large' | undefined;
         config.axis = this.parseAxis(label.Axis);
         config.seriesOptions = this.parseSeriesOptions(label.SeriesOptions);
         config.globalOptions = this.parseGlobalOptions(label.GlobalOptions);
@@ -172,14 +180,21 @@ export class UISchemaParser {
     return this.parseOptions(globalOptions);
   }
 
-  private parseLayout(layouts?: Array<{ $?: { columns?: string; showProgress?: string; showInstructions?: string } }>): LayoutConfig | undefined {
+  private parseLayout(layouts?: Array<{ $?: { columns?: string; showProgress?: string; showInstructions?: string; cssClass?: string; spacing?: string } }>): LayoutConfig | undefined {
     const layout = layouts?.[0]?.$;
     if (!layout) return undefined;
+
+    const validSpacing: Array<'compact' | 'normal' | 'comfortable'> = ['compact', 'normal', 'comfortable'];
+    const spacing = layout.spacing && validSpacing.includes(layout.spacing as any) 
+      ? layout.spacing as 'compact' | 'normal' | 'comfortable'
+      : undefined;
 
     return {
       columns: layout.columns ? parseInt(layout.columns, 10) : undefined,
       showProgress: layout.showProgress === 'true',
-      showInstructions: layout.showInstructions === 'true'
+      showInstructions: layout.showInstructions === 'true',
+      cssClass: layout.cssClass,
+      spacing
     };
   }
 

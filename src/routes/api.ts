@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { configService } from '../services/configService';
 import { storageService } from '../services/azureStorage';
+import { localFileService } from '../services/localFileService';
+import { CSVParser } from '../services/csvParser';
 import { Annotation, UserSession } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -72,7 +74,7 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
       return;
     }
     
-    // For demo mode without Azure, return a placeholder
+    // For demo mode without Azure, read from local files
     if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
       // Return sample data based on type
       if (sample.type === 'image') {
@@ -86,21 +88,43 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
           type: sample.type 
         });
       } else if (sample.type === 'time-series') {
-        // Generate demo time-series data
-        const seriesCount = 10;
-        const seriesData: number[][] = [];
-        for (let i = 0; i < seriesCount; i++) {
-          const series: number[] = [];
-          for (let j = 0; j < 100; j++) {
-            // Generate sinusoidal data with some noise for demo
-            series.push(Math.sin(j * 0.1 + i * 0.5) * 0.5 + (Math.random() - 0.5) * 0.2);
+        // Try to read from local mock-data files or blob URLs
+        try {
+          const config = configService.getConfig();
+          const fileContent = await localFileService.getSampleData(sample, config);
+          
+          // Check if content is CSV or JSON
+          if (sample.fileName.endsWith('.csv') || fileContent.trim().startsWith('time,')) {
+            // Parse CSV to time-series format
+            const seriesCount = sample.metadata?.channelCount || 10;
+            const timeSeries = CSVParser.parseCSVToTimeSeries(fileContent, seriesCount);
+            res.json(timeSeries);
+          } else {
+            // Parse as JSON
+            const parsed = JSON.parse(fileContent);
+            res.json({
+              seriesData: parsed.seriesData || parsed,
+              type: sample.type
+            });
           }
-          seriesData.push(series);
+          return;
+        } catch (fileError) {
+          // Fall back to generated data if file doesn't exist
+          const seriesCount = 10;
+          const seriesData: number[][] = [];
+          for (let i = 0; i < seriesCount; i++) {
+            const series: number[] = [];
+            for (let j = 0; j < 100; j++) {
+              // Generate sinusoidal data with some noise for demo
+              series.push(Math.sin(j * 0.1 + i * 0.5) * 0.5 + (Math.random() - 0.5) * 0.2);
+            }
+            seriesData.push(series);
+          }
+          res.json({
+            seriesData,
+            type: sample.type
+          });
         }
-        res.json({
-          seriesData,
-          type: sample.type
-        });
       } else {
         res.json({ 
           url: `/api/demo/media/${sample.id}`,
@@ -115,10 +139,20 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
       try {
         const data = await storageService.getSampleData(sample);
         const content = data.toString('utf-8');
-        const parsed = JSON.parse(content);
-        res.json({ seriesData: parsed.seriesData ?? parsed, type: sample.type });
+        
+        // Check if content is CSV or JSON
+        if (sample.fileName.endsWith('.csv') || content.trim().startsWith('time,')) {
+          // Parse CSV to time-series format
+          const seriesCount = sample.metadata?.channelCount || 10;
+          const timeSeries = CSVParser.parseCSVToTimeSeries(content, seriesCount);
+          res.json(timeSeries);
+        } else {
+          // Parse as JSON
+          const parsed = JSON.parse(content);
+          res.json({ seriesData: parsed.seriesData ?? parsed, type: sample.type });
+        }
       } catch (parseError) {
-        res.status(400).json({ error: 'Invalid time-series data format. Expected valid JSON.' });
+        res.status(400).json({ error: 'Invalid time-series data format. Expected valid JSON or CSV.' });
         return;
       }
     } else {

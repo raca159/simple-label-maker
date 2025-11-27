@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<LabelingInterface title="Image Classification" description="Classify the images into categories. Use keyboard shortcuts for faster labeling.">
-  <DataSource type="image" field="imageUrl" />
+<LabelingInterface title="Multi-Timeseries ECG Classification" description="Classify each ECG time series as AF, Noise, or None. Then provide a global sample classification and any observations.">
+  <DataSource type="time-series" field="seriesData" />
   
   <Labels>
-    <Label name="category" type="choices" required="true" multiSelect="false">
-      <Option value="cat" label="Cat" hotkey="1" color="#FF5733" />
-      <Option value="dog" label="Dog" hotkey="2" color="#33FF57" />
-      <Option value="bird" label="Bird" hotkey="3" color="#3357FF" />
-      <Option value="other" label="Other" hotkey="4" color="#9B59B6" />
+    <Label name="ecg" type="time-series" count="10" required="true" globalLabel="Sample Classification" commentLabel="Observations" xAxisTickSize="0" buttonSize="small">
+      <Axis min="-1" max="1" />
+      <SeriesOptions>
+        <Option value="AF" label="Atrial Fibrillation" color="#FF5733" />
+        <Option value="Noise" label="Noise" color="#FFC300" />
+      </SeriesOptions>
+      <GlobalOptions>
+        <Option value="AF" label="AF" color="#FF5733" />
+        <Option value="nonAF" label="Non-AF" color="#33FF57" />
+      </GlobalOptions>
     </Label>
-    
-    <Label name="quality" type="rating" required="false" min="1" max="5" />
-    
-    <Label name="notes" type="text-input" required="false" />
   </Labels>
   
-  <Layout columns="1" showProgress="true" showInstructions="true" />
+  <Layout columns="1" showProgress="true" showInstructions="true" spacing="compact" />
 </LabelingInterface>

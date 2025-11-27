@@ -1,5 +1,37 @@
 // Simple Label Maker - Frontend Application
 
+// Register custom Chart.js plugin for crosshair
+if (typeof Chart !== 'undefined') {
+  Chart.register({
+    id: 'crosshair',
+    afterDatasetsDraw(chart) {
+      const canvas = chart.canvas;
+      const hoverX = canvas.dataset.hoverX;
+      
+      if (!hoverX || !chart.chartArea) return;
+      
+      const ctx = chart.ctx;
+      const chartArea = chart.chartArea;
+      
+      // Save state and draw on top of everything
+      ctx.save();
+      ctx.strokeStyle = 'rgba(79, 70, 229, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      
+      const x = parseFloat(hoverX);
+      if (x >= chartArea.left && x <= chartArea.right) {
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+    }
+  });
+}
+
 class LabelMaker {
   constructor() {
     this.currentSampleId = null;
@@ -9,6 +41,7 @@ class LabelMaker {
     this.annotations = {};
     this.currentSeriesData = null;
     this.timeSeriesCharts = [];
+    this.dataPanelCharts = [];
     
     this.init();
   }
@@ -113,6 +146,12 @@ class LabelMaker {
   renderSampleData(sampleData) {
     const dataContent = document.getElementById('dataContent');
     
+    // Destroy any existing data panel charts before rendering new ones
+    if (this.dataPanelCharts) {
+      this.dataPanelCharts.forEach(chart => chart.destroy());
+    }
+    this.dataPanelCharts = [];
+    
     if (sampleData.type === 'image') {
       dataContent.innerHTML = `<img src="${sampleData.url}" alt="Sample image" />`;
     } else if (sampleData.type === 'text') {
@@ -122,22 +161,35 @@ class LabelMaker {
     } else if (sampleData.type === 'video') {
       dataContent.innerHTML = `<video controls src="${sampleData.url}"></video>`;
     } else if (sampleData.type === 'time-series') {
-      // Store series data for later rendering
+      // Store series data for later rendering in the labeling interface
       this.currentSeriesData = sampleData.seriesData;
-      dataContent.innerHTML = '<div class="time-series-placeholder">Time series data loaded. See charts below.</div>';
+      
+      // For time-series, the left panel is empty - all visualization happens in the right panel
+      dataContent.innerHTML = `
+        <div class="time-series-empty-message">
+          <p>View and classify time-series data in the labeling panel on the right.</p>
+        </div>
+      `;
     }
   }
 
   renderLabelingInterface() {
     const container = document.getElementById('labelingInterface');
     const labels = this.uiSchema.labelingInterface.labels;
+    const layout = this.uiSchema.labelingInterface.layout;
     
     container.innerHTML = '';
     
-    // Destroy any existing charts
-    if (this.timeSeriesCharts) {
-      this.timeSeriesCharts.forEach(chart => chart.destroy());
+    // Apply layout classes
+    if (layout?.cssClass) {
+      container.classList.add(layout.cssClass);
     }
+    if (layout?.spacing) {
+      container.classList.add(`spacing-${layout.spacing}`);
+    }
+    
+    // Don't destroy data panel charts - only destroy any labeling interface charts
+    // (which shouldn't exist for time-series anymore, but kept for compatibility)
     this.timeSeriesCharts = [];
     
     labels.forEach(label => {
@@ -145,14 +197,21 @@ class LabelMaker {
       labelGroup.className = 'label-group';
       labelGroup.dataset.labelName = label.name;
       
-      // Title
-      const title = document.createElement('div');
-      title.className = 'label-group-title';
-      title.innerHTML = `
-        ${label.name}
-        ${label.required ? '<span class="required-badge">Required</span>' : ''}
-      `;
-      labelGroup.appendChild(title);
+      // Apply custom CSS class if provided
+      if (label.cssClass) {
+        labelGroup.classList.add(label.cssClass);
+      }
+      
+      // Title (skip for time-series since instructions are the header)
+      if (label.type !== 'time-series') {
+        const title = document.createElement('div');
+        title.className = 'label-group-title';
+        title.innerHTML = `
+          ${label.name}
+          ${label.required ? '<span class="required-badge">Required</span>' : ''}
+        `;
+        labelGroup.appendChild(title);
+      }
       
       // Render based on type
       switch (label.type) {
@@ -279,49 +338,18 @@ class LabelMaker {
       { value: 'AF', label: 'AF', color: '#FF5733' },
       { value: 'nonAF', label: 'Non-AF', color: '#33FF57' }
     ];
-    const axisConfig = label.axis || {};
 
-    // Render individual series charts with label controls
-    for (let i = 0; i < seriesCount; i++) {
-      const seriesItem = document.createElement('div');
-      seriesItem.className = 'series-item';
-      seriesItem.dataset.seriesIndex = i;
+    // Instructions section at the top
+    const instructionsSection = document.createElement('div');
+    instructionsSection.className = 'time-series-instructions-section';
+    
+    const instructionsText = document.createElement('p');
+    instructionsText.className = 'instructions-text';
+    instructionsText.textContent = 'Classify each ECG lead individually, then provide a global classification and any observations.';
+    instructionsSection.appendChild(instructionsText);
+    container.appendChild(instructionsSection);
 
-      // Series header
-      const seriesHeader = document.createElement('div');
-      seriesHeader.className = 'series-header';
-      seriesHeader.innerHTML = `<span class="series-label">Series ${i + 1}</span>`;
-
-      // Series label selector
-      const selectContainer = document.createElement('div');
-      selectContainer.className = 'series-select-container';
-      const select = document.createElement('select');
-      select.className = 'series-select';
-      select.dataset.seriesIndex = i;
-      select.innerHTML = seriesOptions.map(opt => 
-        `<option value="${opt.value}" style="color: ${opt.color || '#000'}">${opt.label}</option>`
-      ).join('');
-      selectContainer.appendChild(select);
-      seriesHeader.appendChild(selectContainer);
-      seriesItem.appendChild(seriesHeader);
-
-      // Chart canvas
-      const chartContainer = document.createElement('div');
-      chartContainer.className = 'chart-container';
-      const canvas = document.createElement('canvas');
-      canvas.id = `chart-${label.name}-${i}`;
-      canvas.className = 'series-chart';
-      chartContainer.appendChild(canvas);
-      seriesItem.appendChild(chartContainer);
-
-      container.appendChild(seriesItem);
-
-      // Render chart with data
-      const data = seriesData[i] || this.generateDemoSeriesData();
-      this.renderSeriesChart(canvas, data, i, axisConfig);
-    }
-
-    // Global classification section
+    // Global classification section (moved to top, right after instructions)
     const globalSection = document.createElement('div');
     globalSection.className = 'global-classification-section';
     
@@ -345,7 +373,80 @@ class LabelMaker {
     globalSection.appendChild(globalOptionsContainer);
     container.appendChild(globalSection);
 
-    // Comment section
+    // Per-series rows with charts and labels side by side
+    const seriesRowsSection = document.createElement('div');
+    seriesRowsSection.className = 'series-rows-section';
+    
+    for (let i = 0; i < seriesCount; i++) {
+      const rowContainer = document.createElement('div');
+      rowContainer.className = 'series-row-with-chart';
+      rowContainer.dataset.seriesIndex = i;
+
+      // Left side: chart
+      const chartCol = document.createElement('div');
+      chartCol.className = 'series-chart-col';
+      
+      const seriesLabel = document.createElement('div');
+      seriesLabel.className = 'series-chart-label';
+      seriesLabel.textContent = `Lead ${i + 1}`;
+      chartCol.appendChild(seriesLabel);
+      
+      const chartContainer = document.createElement('div');
+      chartContainer.className = 'chart-container-inline';
+      const canvas = document.createElement('canvas');
+      canvas.id = `chart-label-${i}`;
+      canvas.className = 'series-chart-inline';
+      chartContainer.appendChild(canvas);
+      chartCol.appendChild(chartContainer);
+      
+      rowContainer.appendChild(chartCol);
+
+      // Right side: classification radio buttons (compact)
+      const selectCol = document.createElement('div');
+      selectCol.className = 'series-select-col-inline';
+      
+      const optionsContainer = document.createElement('div');
+      optionsContainer.className = 'series-options-inline';
+      
+      seriesOptions.forEach(opt => {
+        const optLabel = document.createElement('label');
+        optLabel.className = 'series-option-btn';
+        if (label.buttonSize === 'small') {
+          optLabel.classList.add('btn-small');
+        } else if (label.buttonSize === 'large') {
+          optLabel.classList.add('btn-large');
+        } else {
+          optLabel.classList.add('btn-medium');
+        }
+        optLabel.style.backgroundColor = opt.color || '#ddd';
+        optLabel.title = opt.label;
+        
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = `series-${i}`;
+        radio.value = opt.value;
+        radio.dataset.seriesIndex = i;
+        
+        const text = document.createElement('span');
+        text.textContent = opt.label;
+        
+        optLabel.appendChild(radio);
+        optLabel.appendChild(text);
+        optionsContainer.appendChild(optLabel);
+      });
+      
+      selectCol.appendChild(optionsContainer);
+      rowContainer.appendChild(selectCol);
+      seriesRowsSection.appendChild(rowContainer);
+
+      // Render chart
+      const data = seriesData[i] || this.generateDemoSeriesData();
+      this.renderSeriesChart(canvas, data, i, { min: -1, max: 1 }, false, label.showSeriesTitles || false, label.xAxisTickSize !== undefined ? label.xAxisTickSize : 11);
+    }
+    
+    container.appendChild(seriesRowsSection);
+
+    // Comment section at the bottom
     const commentSection = document.createElement('div');
     commentSection.className = 'comment-section';
     
@@ -373,7 +474,7 @@ class LabelMaker {
     return data;
   }
 
-  renderSeriesChart(canvas, data, seriesIndex, axisConfig) {
+  renderSeriesChart(canvas, data, seriesIndex, axisConfig, isDataPanel = false, showTitle = false, xAxisTickSize = 11) {
     // Check if Chart.js is available
     if (typeof Chart === 'undefined') {
       // Fallback: render a simple canvas visualization
@@ -403,9 +504,36 @@ class LabelMaker {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
           legend: {
             display: false
+          },
+          title: {
+            display: showTitle,
+            text: `Lead ${seriesIndex + 1}`,
+            font: {
+              size: 11,
+              weight: 'bold'
+            },
+            color: '#475569',
+            padding: {
+              top: 2,
+              bottom: 4
+            },
+            align: 'start'
+          },
+          tooltip: {
+            enabled: false
+          },
+          crosshair: {
+            line: {
+              color: 'rgba(79, 70, 229, 0.3)',
+              width: 1
+            }
           }
         },
         scales: {
@@ -415,7 +543,19 @@ class LabelMaker {
               display: false
             },
             ticks: {
-              maxTicksLimit: 5
+              maxTicksLimit: xAxisTickSize > 0 ? 5 : 0,
+              display: xAxisTickSize > 0,
+              font: {
+                size: xAxisTickSize
+              }
+            },
+            grid: {
+              display: true,
+              color: 'rgba(203, 213, 225, 0.5)',
+              drawBorder: false,
+              drawOnChartArea: true,
+              drawTicks: true,
+              lineWidth: 1.2
             }
           },
           y: {
@@ -424,13 +564,49 @@ class LabelMaker {
             max: axisConfig.max !== undefined ? axisConfig.max : undefined,
             ticks: {
               maxTicksLimit: 5
+            },
+            grid: {
+              display: true,
+              color: 'rgba(203, 213, 225, 0.3)',
+              drawBorder: false,
+              drawOnChartArea: true,
+              drawTicks: false,
+              lineWidth: 0.8
             }
           }
         }
       }
     });
 
-    this.timeSeriesCharts.push(chart);
+    // Track charts in appropriate array
+    if (isDataPanel) {
+      this.dataPanelCharts.push(chart);
+    } else {
+      this.timeSeriesCharts.push(chart);
+    }
+
+    // Add hover listener for synchronized crosshair across all charts
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDataPanel) return; // Only sync on labeling interface charts
+      
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const chartArea = chart.chartArea;
+      
+      // Update all charts to show the vertical line
+      this.timeSeriesCharts.forEach(c => {
+        c.canvas.dataset.hoverX = x;
+        c.draw();
+      });
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (isDataPanel) return;
+      this.timeSeriesCharts.forEach(c => {
+        delete c.canvas.dataset.hoverX;
+        c.draw();
+      });
+    });
   }
 
   renderSimpleChart(canvas, data, axisConfig) {
@@ -491,11 +667,14 @@ class LabelMaker {
       const timeSeriesContainer = group.querySelector('.time-series-container');
       if (timeSeriesContainer) {
         const seriesLabels = {};
-        const seriesSelects = timeSeriesContainer.querySelectorAll('.series-select');
-        seriesSelects.forEach(select => {
-          const index = select.dataset.seriesIndex;
-          seriesLabels[`series_${index}`] = select.value;
-        });
+        
+        // Collect radio button selections for each series
+        for (let i = 0; i < 10; i++) {
+          const checkedRadio = timeSeriesContainer.querySelector(`input[name="series-${i}"]:checked`);
+          if (checkedRadio) {
+            seriesLabels[`series_${i}`] = checkedRadio.value;
+          }
+        }
 
         const globalRadio = timeSeriesContainer.querySelector(`input[name="global-${labelName}"]:checked`);
         const globalLabel = globalRadio ? globalRadio.value : '';
