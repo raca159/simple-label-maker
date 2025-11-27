@@ -106,7 +106,12 @@ export class UISchemaParser {
     // managed by administrators. This follows the same pattern as Label Studio.
     const styles = styleArray[0];
     if (typeof styles === 'string' && styles.trim()) {
-      return styles.trim();
+      const trimmed = styles.trim();
+      // Basic check: CSS typically contains braces or @-rules
+      if (trimmed.includes('{') || trimmed.startsWith('@')) {
+        return trimmed;
+      }
+      console.warn('Style content does not appear to be valid CSS');
     }
     return undefined;
   }
