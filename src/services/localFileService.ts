@@ -1,5 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as https from 'https';
+import * as http from 'http';
 import { SampleInfo, ProjectConfig } from '../types';
 
 /**
@@ -16,15 +18,35 @@ export class LocalFileService {
    * Fetch data from a blob storage URL
    */
   private async fetchFromBlobUrl(url: string): Promise<string> {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      return await response.text();
-    } catch (error) {
-      throw new Error(`Failed to fetch from blob URL ${url}: ${error}`);
-    }
+    return new Promise((resolve, reject) => {
+      const urlObj = new URL(url);
+      const client = url.startsWith('https') ? https : http;
+
+      const request = client.get(urlObj, (response) => {
+        if (!response.statusCode || response.statusCode >= 400) {
+          reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+          return;
+        }
+
+        let data = '';
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        response.on('end', () => {
+          resolve(data);
+        });
+      });
+
+      request.on('error', (error) => {
+        reject(new Error(`Failed to fetch from blob URL ${url}: ${error.message}`));
+      });
+
+      request.setTimeout(30000, () => {
+        request.destroy();
+        reject(new Error(`Timeout fetching from blob URL ${url}`));
+      });
+    });
   }
 
   /**

@@ -1,5 +1,37 @@
 // Simple Label Maker - Frontend Application
 
+// Register custom Chart.js plugin for crosshair
+if (typeof Chart !== 'undefined') {
+  Chart.register({
+    id: 'crosshair',
+    afterDatasetsDraw(chart) {
+      const canvas = chart.canvas;
+      const hoverX = canvas.dataset.hoverX;
+      
+      if (!hoverX || !chart.chartArea) return;
+      
+      const ctx = chart.ctx;
+      const chartArea = chart.chartArea;
+      
+      // Save state and draw on top of everything
+      ctx.save();
+      ctx.strokeStyle = 'rgba(79, 70, 229, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      
+      const x = parseFloat(hoverX);
+      if (x >= chartArea.left && x <= chartArea.right) {
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+    }
+  });
+}
+
 class LabelMaker {
   constructor() {
     this.currentSampleId = null;
@@ -472,6 +504,10 @@ class LabelMaker {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
           legend: {
             display: false
@@ -489,6 +525,15 @@ class LabelMaker {
               bottom: 4
             },
             align: 'start'
+          },
+          tooltip: {
+            enabled: false
+          },
+          crosshair: {
+            line: {
+              color: 'rgba(79, 70, 229, 0.3)',
+              width: 1
+            }
           }
         },
         scales: {
@@ -503,6 +548,14 @@ class LabelMaker {
               font: {
                 size: xAxisTickSize
               }
+            },
+            grid: {
+              display: true,
+              color: 'rgba(203, 213, 225, 0.5)',
+              drawBorder: false,
+              drawOnChartArea: true,
+              drawTicks: true,
+              lineWidth: 1.2
             }
           },
           y: {
@@ -511,6 +564,14 @@ class LabelMaker {
             max: axisConfig.max !== undefined ? axisConfig.max : undefined,
             ticks: {
               maxTicksLimit: 5
+            },
+            grid: {
+              display: true,
+              color: 'rgba(203, 213, 225, 0.3)',
+              drawBorder: false,
+              drawOnChartArea: true,
+              drawTicks: false,
+              lineWidth: 0.8
             }
           }
         }
@@ -523,6 +584,29 @@ class LabelMaker {
     } else {
       this.timeSeriesCharts.push(chart);
     }
+
+    // Add hover listener for synchronized crosshair across all charts
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDataPanel) return; // Only sync on labeling interface charts
+      
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const chartArea = chart.chartArea;
+      
+      // Update all charts to show the vertical line
+      this.timeSeriesCharts.forEach(c => {
+        c.canvas.dataset.hoverX = x;
+        c.draw();
+      });
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (isDataPanel) return;
+      this.timeSeriesCharts.forEach(c => {
+        delete c.canvas.dataset.hoverX;
+        c.draw();
+      });
+    });
   }
 
   renderSimpleChart(canvas, data, axisConfig) {

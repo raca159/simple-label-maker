@@ -1,0 +1,49 @@
+{
+  "projectId": "classification",
+  "projectName": "Detection",
+  "description": "Mock.",
+  "azureStorage": {
+    "accountName": "accountName",
+    "containerName": "data",
+    "dataPath": "rawdata",
+    "annotationsPath": "annotations"
+  },
+  "authentication": {
+    "azureB2C": {
+      "tenantId": "your-tenant-id",
+      "clientId": "your-client-id",
+      "authority": "https://your-tenant.b2clogin.com/your-tenant.onmicrosoft.com/B2C_1_signupsignin",
+      "redirectUri": "http://localhost:3000/auth/callback",
+      "scopes": ["openid", "profile", "email"]
+    }
+  },
+  "samples": [
+    {
+      "id": "sample-001",
+      "fileName": "https://path.blob.core/sample.0.csv",
+      "type": "time-series",
+      "metadata": {
+        "channelCount": 10,
+        "description": "AF positive sample 1"
+      }
+    },
+    {
+      "id": "sample-002",
+      "fileName": "https://path.blob.core/sample.1.csv",
+      "type": "time-series",
+      "metadata": {
+        "channelCount": 10,
+        "description": "AF positive sample 2"
+      }
+    },
+    {
+      "id": "sample-003",
+      "fileName": "https://path.blob.core/sample.2.csv",
+      "type": "time-series",
+      "metadata": {
+        "channelCount": 10,
+        "description": "AF positive sample 3"
+      }
+    }
+  ]
+}
