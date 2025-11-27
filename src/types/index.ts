@@ -25,7 +25,10 @@ export interface SampleInfo {
   id: string;
   fileName: string;
   type: 'image' | 'text' | 'audio' | 'video' | 'time-series';
-  metadata?: Record<string, string>;
+  metadata?: {
+    channelCount?: number;
+    [key: string]: any;
+  };
 }
 
 // UI Schema types (parsed from UI.xml)
@@ -52,6 +55,7 @@ export interface LabelConfig {
   min?: number;
   max?: number;
   multiSelect?: boolean;
+  cssClass?: string;
   // Time-series specific fields
   count?: number;
   axis?: AxisConfig;
@@ -59,6 +63,9 @@ export interface LabelConfig {
   globalOptions?: LabelOption[];
   globalLabel?: string;
   commentLabel?: string;
+  showSeriesTitles?: boolean;
+  xAxisTickSize?: number;
+  buttonSize?: 'small' | 'medium' | 'large';
 }
 
 export interface AxisConfig {
@@ -77,6 +84,8 @@ export interface LayoutConfig {
   columns?: number;
   showProgress?: boolean;
   showInstructions?: boolean;
+  cssClass?: string;
+  spacing?: 'compact' | 'normal' | 'comfortable';
 }
 
 // Annotation types

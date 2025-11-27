@@ -1,11 +1,11 @@
 {
-  "projectId": "sample-project",
-  "projectName": "Sample Image Classification",
-  "description": "Classify images into categories. Use the number keys (1-4) as shortcuts or click on the labels to select them.",
+  "projectId": "ecg-classification",
+  "projectName": "ECG Multi-Timeseries Classification",
+  "description": "Classify ECG time series recordings. Each sample contains multiple leads. Label each lead as AF, Noise, or None, then provide a global sample classification.",
   "azureStorage": {
     "accountName": "your-storage-account",
-    "containerName": "labeling-data",
-    "dataPath": "samples",
+    "containerName": "ecg-labeling",
+    "dataPath": "ecg-samples",
     "annotationsPath": "annotations"
   },
   "authentication": {
@@ -19,48 +19,30 @@
   },
   "samples": [
     {
-      "id": "sample-001",
-      "fileName": "image1.jpg",
-      "type": "image",
+      "id": "ecg-001",
+      "fileName": "ecg_recording_001.json",
+      "type": "time-series",
       "metadata": {
-        "source": "demo-dataset",
-        "batch": "batch-1"
+        "source": "ecg-dataset",
+        "patient": "P001"
       }
     },
     {
-      "id": "sample-002",
-      "fileName": "image2.jpg",
-      "type": "image",
+      "id": "ecg-002",
+      "fileName": "ecg_recording_002.json",
+      "type": "time-series",
       "metadata": {
-        "source": "demo-dataset",
-        "batch": "batch-1"
+        "source": "ecg-dataset",
+        "patient": "P002"
       }
     },
     {
-      "id": "sample-003",
-      "fileName": "image3.jpg",
-      "type": "image",
+      "id": "ecg-003",
+      "fileName": "ecg_recording_003.json",
+      "type": "time-series",
       "metadata": {
-        "source": "demo-dataset",
-        "batch": "batch-1"
-      }
-    },
-    {
-      "id": "sample-004",
-      "fileName": "document1.txt",
-      "type": "text",
-      "metadata": {
-        "source": "demo-dataset",
-        "batch": "batch-2"
-      }
-    },
-    {
-      "id": "sample-005",
-      "fileName": "image4.jpg",
-      "type": "image",
-      "metadata": {
-        "source": "demo-dataset",
-        "batch": "batch-2"
+        "source": "ecg-dataset",
+        "patient": "P003"
       }
     }
   ]
