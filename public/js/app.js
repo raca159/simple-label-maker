@@ -90,6 +90,28 @@ class LabelMaker {
     
     document.getElementById('labelingTitle').textContent = 
       this.uiSchema.labelingInterface.title || 'Labels';
+    
+    // Inject custom styles if provided in UI.xml
+    this.applyCustomStyles();
+  }
+
+  applyCustomStyles() {
+    // Remove any previously injected custom styles
+    const existingStyle = document.getElementById('custom-ui-styles');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    
+    // Inject new custom styles if provided
+    // Note: Custom styles come from UI.xml which is a project configuration file
+    // managed by administrators. This follows the same pattern as Label Studio.
+    const customStyles = this.uiSchema?.labelingInterface?.customStyles;
+    if (customStyles) {
+      const styleElement = document.createElement('style');
+      styleElement.id = 'custom-ui-styles';
+      styleElement.textContent = customStyles;
+      document.head.appendChild(styleElement);
+    }
   }
 
   async loadSamples() {

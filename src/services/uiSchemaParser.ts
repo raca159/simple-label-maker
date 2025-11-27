@@ -41,6 +41,7 @@ interface ParsedXML {
         showInstructions?: string;
       };
     }>;
+    Style?: string[];
   };
 }
 
@@ -90,9 +91,29 @@ export class UISchemaParser {
         description: li.$?.description,
         dataSource: this.parseDataSource(li.DataSource),
         labels: this.parseLabels(li.Labels),
-        layout: this.parseLayout(li.Layout)
+        layout: this.parseLayout(li.Layout),
+        customStyles: this.parseCustomStyles(li.Style)
       }
     };
+  }
+
+  private parseCustomStyles(styleArray?: string[]): string | undefined {
+    if (!styleArray || styleArray.length === 0) {
+      return undefined;
+    }
+    // The Style element content is in the first array element
+    // Note: Custom styles come from UI.xml which is a project configuration file
+    // managed by administrators. This follows the same pattern as Label Studio.
+    const styles = styleArray[0];
+    if (typeof styles === 'string' && styles.trim()) {
+      const trimmed = styles.trim();
+      // Basic check: CSS typically contains braces or @-rules
+      if (trimmed.includes('{') || trimmed.startsWith('@')) {
+        return trimmed;
+      }
+      console.warn('Style content does not appear to be valid CSS');
+    }
+    return undefined;
   }
 
   private parseDataSource(dataSources?: Array<{ $?: { type?: string; field?: string } }>): DataSource {

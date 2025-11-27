@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LabelingInterface title="Multi-Timeseries ECG Classification" description="Classify each ECG time series as AF, Noise, or None. Then provide a global sample classification and any observations.">
+  <Style>
+    /* Custom styling for the labeling interface */
+    .global-classification-section {
+      background-color: #f0f9ff;
+      border: 1px solid #0ea5e9;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .global-title {
+      color: #0369a1;
+      font-weight: 600;
+    }
+
+    .comment-section {
+      background-color: #fefce8;
+      border: 1px solid #eab308;
+      border-radius: 8px;
+      padding: 12px;
+    }
+  </Style>
+
   <DataSource type="time-series" field="seriesData" />
   
   <Labels>
