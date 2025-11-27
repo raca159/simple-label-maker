@@ -102,7 +102,8 @@ export class UISchemaParser {
       return undefined;
     }
     // The Style element content is in the first array element
-    // Trim whitespace but preserve the CSS content
+    // Note: Custom styles come from UI.xml which is a project configuration file
+    // managed by administrators. This follows the same pattern as Label Studio.
     const styles = styleArray[0];
     if (typeof styles === 'string' && styles.trim()) {
       return styles.trim();

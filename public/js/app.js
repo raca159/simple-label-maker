@@ -103,6 +103,8 @@ class LabelMaker {
     }
     
     // Inject new custom styles if provided
+    // Note: Custom styles come from UI.xml which is a project configuration file
+    // managed by administrators. This follows the same pattern as Label Studio.
     const customStyles = this.uiSchema?.labelingInterface?.customStyles;
     if (customStyles) {
       const styleElement = document.createElement('style');
