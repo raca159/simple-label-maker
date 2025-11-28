@@ -36,6 +36,7 @@ class LabelMaker {
   constructor() {
     this.currentSampleId = null;
     this.samples = [];
+    this.allSamples = []; // Store all samples for reference
     this.uiSchema = null;
     this.projectInfo = null;
     this.annotations = {};
@@ -45,21 +46,31 @@ class LabelMaker {
     this.helpShown = false;
     this.escapeListenerAdded = false;
     this.helpContentRendered = false;
+    this.sampleControl = {}; // Sample control configuration
+    this.totalSamples = 0; // Total samples in project
     
     this.init();
   }
 
   async init() {
     try {
-      // Load project info and UI schema
-      await Promise.all([
-        this.loadProjectInfo(),
-        this.loadUISchema(),
-        this.loadSamples()
-      ]);
+      // Load project info first to get sample control settings
+      await this.loadProjectInfo();
+      
+      // Load UI schema
+      await this.loadUISchema();
+      
+      // Load saved annotations from localStorage before filtering
+      this.loadSavedAnnotations();
+      
+      // Load samples (filtered if configured)
+      await this.loadSamples();
 
       // Set up event listeners
       this.setupEventListeners();
+
+      // Apply sample control settings to UI
+      this.applySampleControlSettings();
 
       // Initialize help modal if configured
       this.initializeHelpModal();
@@ -70,10 +81,10 @@ class LabelMaker {
         await this.loadSample(pathMatch[1]);
       } else if (this.samples.length > 0) {
         await this.loadSample(this.samples[0].id);
+      } else {
+        // No samples available (all annotated)
+        this.showCompletionMessage();
       }
-
-      // Load saved annotations from localStorage
-      this.loadSavedAnnotations();
 
     } catch (error) {
       console.error('Failed to initialize:', error);
@@ -84,6 +95,10 @@ class LabelMaker {
   async loadProjectInfo() {
     const response = await fetch('/api/project');
     this.projectInfo = await response.json();
+    
+    // Store sample control settings
+    this.sampleControl = this.projectInfo.sampleControl || {};
+    this.totalSamples = this.projectInfo.totalSamples;
     
     document.getElementById('projectName').textContent = this.projectInfo.projectName;
     document.getElementById('projectDescription').textContent = 
@@ -407,9 +422,73 @@ class LabelMaker {
   }
 
   async loadSamples() {
-    const response = await fetch('/api/samples');
-    this.samples = await response.json();
+    // First get all samples for reference
+    const allResponse = await fetch('/api/samples');
+    this.allSamples = await allResponse.json();
+    
+    // If filtering is enabled, use the filtered endpoint
+    if (this.sampleControl.filterAnnotatedSamples) {
+      const response = await fetch('/api/samples/filtered');
+      const data = await response.json();
+      
+      // If server indicates we should filter on client (demo mode)
+      if (data.filterOnClient) {
+        // Filter out samples that are already annotated locally
+        this.samples = this.allSamples.filter(s => !this.annotations[s.id]);
+      } else {
+        this.samples = data.samples;
+      }
+      
+      this.totalSamples = data.totalSamples;
+    } else {
+      this.samples = this.allSamples;
+    }
+    
     this.updateProgress();
+  }
+
+  applySampleControlSettings() {
+    const skipBtn = document.getElementById('skipBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    
+    // Hide/disable buttons based on sample control settings
+    if (this.sampleControl.disableSkip && skipBtn) {
+      skipBtn.style.display = 'none';
+    }
+    
+    if (this.sampleControl.disablePrevious && prevBtn) {
+      prevBtn.style.display = 'none';
+    }
+    
+    if (this.sampleControl.disableNext && nextBtn) {
+      nextBtn.style.display = 'none';
+    }
+  }
+
+  showCompletionMessage() {
+    const dataContent = document.getElementById('dataContent');
+    const labelingInterface = document.getElementById('labelingInterface');
+    const actionBar = document.querySelector('.action-bar');
+    
+    dataContent.innerHTML = `
+      <div class="completion-message">
+        <div class="completion-icon">🎉</div>
+        <h2>All Done!</h2>
+        <p>You have completed labeling all available samples.</p>
+        <p class="completion-stats">Total samples annotated: ${Object.keys(this.annotations).length} / ${this.totalSamples}</p>
+      </div>
+    `;
+    
+    if (labelingInterface) {
+      labelingInterface.innerHTML = '';
+    }
+    
+    if (actionBar) {
+      actionBar.style.display = 'none';
+    }
+    
+    document.getElementById('sampleId').textContent = 'Complete';
   }
 
   async loadSample(sampleId) {
@@ -1072,12 +1151,24 @@ class LabelMaker {
         // Save to localStorage
         this.saveAnnotationLocally(this.currentSampleId, labels);
         this.showToast('Annotation submitted successfully!', 'success');
+        
+        // If filtering is enabled, remove the current sample from the filtered list
+        if (this.sampleControl.filterAnnotatedSamples) {
+          this.samples = this.samples.filter(s => s.id !== this.currentSampleId);
+        }
+        
         this.updateProgress();
         
         // Move to next sample
         const navInfo = await this.getNavigationInfo();
         if (navInfo.hasNext) {
           this.loadSample(navInfo.nextId);
+        } else if (this.samples.length > 0) {
+          // If no next, load first remaining sample (for filtered mode)
+          this.loadSample(this.samples[0].id);
+        } else if (this.sampleControl.filterAnnotatedSamples) {
+          // All samples completed
+          this.showCompletionMessage();
         }
       } else {
         throw new Error('Failed to submit');
@@ -1176,7 +1267,27 @@ class LabelMaker {
     });
   }
 
+  getLocalNavigationInfo() {
+    // Get navigation info based on the filtered samples list
+    const currentIndex = this.samples.findIndex(s => s.id === this.currentSampleId);
+    
+    return {
+      current: currentIndex + 1,
+      total: this.samples.length,
+      hasPrevious: currentIndex > 0,
+      hasNext: currentIndex < this.samples.length - 1,
+      previousId: currentIndex > 0 ? this.samples[currentIndex - 1]?.id : null,
+      nextId: currentIndex < this.samples.length - 1 ? this.samples[currentIndex + 1]?.id : null
+    };
+  }
+
   async getNavigationInfo() {
+    // If filtering is enabled, use local navigation based on filtered samples
+    if (this.sampleControl.filterAnnotatedSamples) {
+      return this.getLocalNavigationInfo();
+    }
+    
+    // Otherwise, use server-side navigation
     const response = await fetch(`/api/navigation/${this.currentSampleId}`);
     return await response.json();
   }
@@ -1184,25 +1295,41 @@ class LabelMaker {
   async updateNavigation() {
     const navInfo = await this.getNavigationInfo();
     
-    document.getElementById('prevBtn').disabled = !navInfo.hasPrevious;
-    document.getElementById('nextBtn').disabled = !navInfo.hasNext;
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
     
-    document.getElementById('prevBtn').onclick = () => {
-      if (navInfo.previousId) this.loadSample(navInfo.previousId);
-    };
+    // Respect sample control settings
+    if (!this.sampleControl.disablePrevious && prevBtn) {
+      prevBtn.disabled = !navInfo.hasPrevious;
+      prevBtn.onclick = () => {
+        if (navInfo.previousId) this.loadSample(navInfo.previousId);
+      };
+    }
     
-    document.getElementById('nextBtn').onclick = () => {
-      if (navInfo.nextId) this.loadSample(navInfo.nextId);
-    };
+    if (!this.sampleControl.disableNext && nextBtn) {
+      nextBtn.disabled = !navInfo.hasNext;
+      nextBtn.onclick = () => {
+        if (navInfo.nextId) this.loadSample(navInfo.nextId);
+      };
+    }
   }
 
   updateProgress() {
-    const totalSamples = this.samples.length;
     const annotatedSamples = Object.keys(this.annotations).length;
-    const percentage = totalSamples > 0 ? (annotatedSamples / totalSamples) * 100 : 0;
     
-    document.getElementById('progressText').textContent = `${annotatedSamples} / ${totalSamples}`;
-    document.getElementById('progressFill').style.width = `${percentage}%`;
+    // When filtering is enabled, show progress as "annotated / total" with remaining in the filtered list
+    if (this.sampleControl.filterAnnotatedSamples) {
+      // Show how many samples have been annotated out of the total project samples
+      const percentage = this.totalSamples > 0 ? (annotatedSamples / this.totalSamples) * 100 : 0;
+      document.getElementById('progressText').textContent = `${annotatedSamples} / ${this.totalSamples}`;
+      document.getElementById('progressFill').style.width = `${percentage}%`;
+    } else {
+      // Standard progress: show based on samples list
+      const totalSamples = this.samples.length;
+      const percentage = totalSamples > 0 ? (annotatedSamples / totalSamples) * 100 : 0;
+      document.getElementById('progressText').textContent = `${annotatedSamples} / ${totalSamples}`;
+      document.getElementById('progressFill').style.width = `${percentage}%`;
+    }
   }
 
   setupEventListeners() {

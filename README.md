@@ -81,6 +81,12 @@ docker run -p 3000:3000 simple-label-maker
       "scopes": ["openid", "profile", "email"]
     }
   },
+  "sampleControl": {
+    "disableSkip": false,
+    "disablePrevious": false,
+    "disableNext": false,
+    "filterAnnotatedSamples": false
+  },
   "samples": [
     {
       "id": "sample-001",
@@ -90,6 +96,35 @@ docker run -p 3000:3000 simple-label-maker
     }
   ]
 }
+```
+
+### Sample Control Configuration
+
+The `sampleControl` object allows you to control navigation behavior and sample filtering:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `disableSkip` | boolean | `false` | Hides the Skip button, preventing users from skipping samples |
+| `disablePrevious` | boolean | `false` | Hides the Previous button, preventing navigation to previously viewed samples |
+| `disableNext` | boolean | `false` | Hides the Next button, preventing forward navigation without submitting |
+| `filterAnnotatedSamples` | boolean | `false` | Filters out already-annotated samples, showing only remaining work |
+
+#### Use Cases
+
+**Prevent Sample Cross-Influence**: Set `disableSkip`, `disablePrevious`, and `disableNext` all to `true` to ensure each sample is viewed only once, preventing one sample from influencing the labeling of another.
+
+```json
+{
+  "sampleControl": {
+    "disableSkip": true,
+    "disablePrevious": true,
+    "disableNext": true,
+    "filterAnnotatedSamples": true
+  }
+}
+```
+
+**Resume Labeling Sessions**: Set `filterAnnotatedSamples` to `true` so users can stop labeling, return later, and automatically continue from where they left off. The progress bar shows "11/100" style progress indicating completed samples out of total.
 ```
 
 ### UI Schema (`config/UI.xml`)
@@ -288,9 +323,10 @@ Example annotation structure:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/project` | GET | Get project information |
+| `/api/project` | GET | Get project information and sample control settings |
 | `/api/ui-schema` | GET | Get UI schema |
 | `/api/samples` | GET | List all samples |
+| `/api/samples/filtered` | GET | Get samples filtered by user's annotations (when filtering enabled) |
 | `/api/samples/:id` | GET | Get sample details |
 | `/api/samples/:id/data` | GET | Get sample data/URL |
 | `/api/annotations/:sampleId` | GET | Get annotation for current user |

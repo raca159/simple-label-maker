@@ -17,6 +17,12 @@
       "scopes": ["openid", "profile", "email"]
     }
   },
+  "sampleControl": {
+    "disableSkip": false,
+    "disablePrevious": false,
+    "disableNext": false,
+    "filterAnnotatedSamples": false
+  },
   "samples": [
     {
       "id": "ecg-001",
