@@ -31,6 +31,20 @@ export interface SampleInfo {
   };
 }
 
+// Help resource types
+export interface HelpResource {
+  type: 'video' | 'pdf' | 'text' | 'audio' | 'link';
+  title: string;
+  url?: string;
+  content?: string;
+}
+
+export interface HelpConfig {
+  title?: string;
+  showOnLoad?: boolean;
+  resources: HelpResource[];
+}
+
 // UI Schema types (parsed from UI.xml)
 export interface UISchema {
   labelingInterface: {
@@ -40,6 +54,7 @@ export interface UISchema {
     labels: LabelConfig[];
     layout?: LayoutConfig;
     customStyles?: string;
+    help?: HelpConfig;
   };
 }
 

@@ -1,6 +1,6 @@
 import { parseString } from 'xml2js';
 import { promisify } from 'util';
-import { UISchema, LabelConfig, DataSource, LayoutConfig, LabelOption, AxisConfig } from '../types';
+import { UISchema, LabelConfig, DataSource, LayoutConfig, LabelOption, AxisConfig, HelpConfig, HelpResource } from '../types';
 
 const parseXml = promisify(parseString);
 
@@ -17,6 +17,22 @@ type ParsedOptionArray = Array<{
 // Type for nested options container (SeriesOptions, GlobalOptions)
 type NestedOptionsArray = Array<{
   Option?: ParsedOptionArray;
+}>;
+
+// Type for parsed Help element
+type ParsedHelpArray = Array<{
+  $?: {
+    title?: string;
+    showOnLoad?: string;
+  };
+  Resource?: Array<{
+    $?: {
+      type?: string;
+      title?: string;
+      url?: string;
+    };
+    _?: string;
+  }>;
 }>;
 
 interface ParsedXML {
@@ -42,6 +58,7 @@ interface ParsedXML {
       };
     }>;
     Style?: string[];
+    Help?: ParsedHelpArray;
   };
 }
 
@@ -92,8 +109,42 @@ export class UISchemaParser {
         dataSource: this.parseDataSource(li.DataSource),
         labels: this.parseLabels(li.Labels),
         layout: this.parseLayout(li.Layout),
-        customStyles: this.parseCustomStyles(li.Style)
+        customStyles: this.parseCustomStyles(li.Style),
+        help: this.parseHelp(li.Help)
       }
+    };
+  }
+
+  private parseHelp(helpArray?: ParsedHelpArray): HelpConfig | undefined {
+    const help = helpArray?.[0];
+    if (!help) return undefined;
+
+    const validResourceTypes: HelpResource['type'][] = ['video', 'pdf', 'text', 'audio', 'link'];
+    
+    const resources: HelpResource[] = (help.Resource ?? []).map((res): HelpResource => {
+      const rawType = res.$?.type ?? 'link';
+      const type = validResourceTypes.includes(rawType as HelpResource['type'])
+        ? rawType as HelpResource['type']
+        : 'link';
+
+      return {
+        type,
+        title: res.$?.title ?? 'Untitled Resource',
+        url: res.$?.url,
+        content: res._ // Text content inside the Resource element
+      };
+    });
+
+    // Return undefined if no resources are defined to prevent showing an empty modal
+    if (resources.length === 0) {
+      return undefined;
+    }
+
+    return {
+      title: help.$?.title ?? 'Help & Guides',
+      // Default to true if not explicitly set to 'false'
+      showOnLoad: help.$?.showOnLoad === undefined || help.$?.showOnLoad === 'true',
+      resources
     };
   }
 
