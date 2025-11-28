@@ -48,6 +48,7 @@ class LabelMaker {
     this.helpContentRendered = false;
     this.sampleControl = {}; // Sample control configuration
     this.totalSamples = 0; // Total samples in project
+    this.serverAnnotatedCount = undefined; // Track server-reported annotated count
     
     this.init();
   }
@@ -437,6 +438,10 @@ class LabelMaker {
         this.samples = this.allSamples.filter(s => !this.annotations[s.id]);
       } else {
         this.samples = data.samples;
+        // In Azure mode, track the server-reported annotated count
+        if (data.annotatedCount !== undefined) {
+          this.serverAnnotatedCount = data.annotatedCount;
+        }
       }
       
       this.totalSamples = data.totalSamples;
@@ -466,17 +471,26 @@ class LabelMaker {
     }
   }
 
+  getAnnotatedCount() {
+    // If we have server-reported count, use it; otherwise use local count
+    if (this.serverAnnotatedCount !== undefined) {
+      return this.serverAnnotatedCount + Object.keys(this.annotations).length;
+    }
+    return Object.keys(this.annotations).length;
+  }
+
   showCompletionMessage() {
     const dataContent = document.getElementById('dataContent');
     const labelingInterface = document.getElementById('labelingInterface');
     const actionBar = document.querySelector('.action-bar');
+    const annotatedCount = this.getAnnotatedCount();
     
     dataContent.innerHTML = `
       <div class="completion-message">
         <div class="completion-icon">🎉</div>
         <h2>All Done!</h2>
         <p>You have completed labeling all available samples.</p>
-        <p class="completion-stats">Total samples annotated: ${Object.keys(this.annotations).length} / ${this.totalSamples}</p>
+        <p class="completion-stats">Total samples annotated: ${annotatedCount} / ${this.totalSamples}</p>
       </div>
     `;
     
@@ -1152,23 +1166,29 @@ class LabelMaker {
         this.saveAnnotationLocally(this.currentSampleId, labels);
         this.showToast('Annotation submitted successfully!', 'success');
         
+        // Store current sample ID before modifying the list
+        const submittedSampleId = this.currentSampleId;
+        
         // If filtering is enabled, remove the current sample from the filtered list
         if (this.sampleControl.filterAnnotatedSamples) {
-          this.samples = this.samples.filter(s => s.id !== this.currentSampleId);
+          this.samples = this.samples.filter(s => s.id !== submittedSampleId);
         }
         
         this.updateProgress();
         
-        // Move to next sample
-        const navInfo = await this.getNavigationInfo();
-        if (navInfo.hasNext) {
-          this.loadSample(navInfo.nextId);
-        } else if (this.samples.length > 0) {
-          // If no next, load first remaining sample (for filtered mode)
-          this.loadSample(this.samples[0].id);
-        } else if (this.sampleControl.filterAnnotatedSamples) {
+        // Check if there are remaining samples
+        if (this.samples.length === 0 && this.sampleControl.filterAnnotatedSamples) {
           // All samples completed
           this.showCompletionMessage();
+        } else {
+          // Move to next sample - use navigation based on current list state
+          const navInfo = await this.getNavigationInfo();
+          if (navInfo.hasNext && navInfo.nextId) {
+            this.loadSample(navInfo.nextId);
+          } else if (this.samples.length > 0) {
+            // Load first remaining sample (after filtering, current sample is removed)
+            this.loadSample(this.samples[0].id);
+          }
         }
       } else {
         throw new Error('Failed to submit');
@@ -1315,19 +1335,19 @@ class LabelMaker {
   }
 
   updateProgress() {
-    const annotatedSamples = Object.keys(this.annotations).length;
+    const annotatedCount = this.getAnnotatedCount();
     
     // When filtering is enabled, show progress as "annotated / total" with remaining in the filtered list
     if (this.sampleControl.filterAnnotatedSamples) {
       // Show how many samples have been annotated out of the total project samples
-      const percentage = this.totalSamples > 0 ? (annotatedSamples / this.totalSamples) * 100 : 0;
-      document.getElementById('progressText').textContent = `${annotatedSamples} / ${this.totalSamples}`;
+      const percentage = this.totalSamples > 0 ? (annotatedCount / this.totalSamples) * 100 : 0;
+      document.getElementById('progressText').textContent = `${annotatedCount} / ${this.totalSamples}`;
       document.getElementById('progressFill').style.width = `${percentage}%`;
     } else {
       // Standard progress: show based on samples list
       const totalSamples = this.samples.length;
-      const percentage = totalSamples > 0 ? (annotatedSamples / totalSamples) * 100 : 0;
-      document.getElementById('progressText').textContent = `${annotatedSamples} / ${totalSamples}`;
+      const percentage = totalSamples > 0 ? (annotatedCount / totalSamples) * 100 : 0;
+      document.getElementById('progressText').textContent = `${annotatedCount} / ${totalSamples}`;
       document.getElementById('progressFill').style.width = `${percentage}%`;
     }
   }
