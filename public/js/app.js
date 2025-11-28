@@ -42,6 +42,7 @@ class LabelMaker {
     this.currentSeriesData = null;
     this.timeSeriesCharts = [];
     this.dataPanelCharts = [];
+    this.helpShown = false;
     
     this.init();
   }
@@ -57,6 +58,9 @@ class LabelMaker {
 
       // Set up event listeners
       this.setupEventListeners();
+
+      // Initialize help modal if configured
+      this.initializeHelpModal();
 
       // Get current sample from URL or load first sample
       const pathMatch = window.location.pathname.match(/\/label\/(.+)/);
@@ -111,6 +115,233 @@ class LabelMaker {
       styleElement.id = 'custom-ui-styles';
       styleElement.textContent = customStyles;
       document.head.appendChild(styleElement);
+    }
+  }
+
+  initializeHelpModal() {
+    const helpConfig = this.uiSchema?.labelingInterface?.help;
+    if (!helpConfig || !helpConfig.resources || helpConfig.resources.length === 0) {
+      return;
+    }
+
+    // Show the help button
+    const helpBtn = document.getElementById('helpBtn');
+    if (helpBtn) {
+      helpBtn.style.display = 'inline-flex';
+    }
+
+    // Render help content
+    this.renderHelpContent(helpConfig);
+
+    // Setup help modal event listeners
+    this.setupHelpModalListeners();
+
+    // Show modal on load if configured
+    if (helpConfig.showOnLoad && !this.helpShown) {
+      this.showHelpModal();
+      this.helpShown = true;
+    }
+  }
+
+  renderHelpContent(helpConfig) {
+    const modalTitle = document.getElementById('helpModalTitle');
+    const modalContent = document.getElementById('helpModalContent');
+
+    if (modalTitle) {
+      modalTitle.textContent = helpConfig.title || 'Help & Guides';
+    }
+
+    if (!modalContent) return;
+
+    modalContent.innerHTML = '';
+
+    helpConfig.resources.forEach(resource => {
+      const resourceEl = document.createElement('div');
+      resourceEl.className = 'help-resource';
+
+      const header = document.createElement('div');
+      header.className = 'help-resource-header';
+
+      const icon = document.createElement('div');
+      icon.className = 'help-resource-icon';
+      icon.textContent = this.getResourceIcon(resource.type);
+
+      const title = document.createElement('h3');
+      title.className = 'help-resource-title';
+      title.textContent = resource.title;
+
+      header.appendChild(icon);
+      header.appendChild(title);
+      resourceEl.appendChild(header);
+
+      const content = document.createElement('div');
+      content.className = 'help-resource-content';
+      content.appendChild(this.renderResourceContent(resource));
+      resourceEl.appendChild(content);
+
+      modalContent.appendChild(resourceEl);
+    });
+  }
+
+  getResourceIcon(type) {
+    switch (type) {
+      case 'video': return '🎬';
+      case 'pdf': return '📄';
+      case 'text': return '📝';
+      case 'audio': return '🔊';
+      case 'link': return '🔗';
+      default: return '📌';
+    }
+  }
+
+  renderResourceContent(resource) {
+    const container = document.createElement('div');
+
+    switch (resource.type) {
+      case 'video':
+        if (resource.url) {
+          const embedUrl = this.getVideoEmbedUrl(resource.url);
+          if (embedUrl) {
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'help-video-container';
+            const iframe = document.createElement('iframe');
+            iframe.src = embedUrl;
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+            iframe.allowFullscreen = true;
+            videoContainer.appendChild(iframe);
+            container.appendChild(videoContainer);
+          } else {
+            // Fallback to link
+            const link = document.createElement('a');
+            link.href = resource.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = 'help-external-link';
+            link.textContent = 'Watch Video ↗';
+            container.appendChild(link);
+          }
+        }
+        break;
+
+      case 'pdf':
+        if (resource.url) {
+          const link = document.createElement('a');
+          link.href = resource.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.className = 'help-pdf-link';
+          link.innerHTML = '📄 Open PDF Document ↗';
+          container.appendChild(link);
+        }
+        break;
+
+      case 'text':
+        const textContent = document.createElement('p');
+        textContent.textContent = resource.content || '';
+        container.appendChild(textContent);
+        break;
+
+      case 'audio':
+        if (resource.url) {
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.className = 'help-audio-player';
+          audio.src = resource.url;
+          container.appendChild(audio);
+        }
+        break;
+
+      case 'link':
+      default:
+        if (resource.url) {
+          const link = document.createElement('a');
+          link.href = resource.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.className = 'help-external-link';
+          link.textContent = resource.content || 'Open Link ↗';
+          container.appendChild(link);
+        } else if (resource.content) {
+          const textContent = document.createElement('p');
+          textContent.textContent = resource.content;
+          container.appendChild(textContent);
+        }
+        break;
+    }
+
+    return container;
+  }
+
+  getVideoEmbedUrl(url) {
+    // YouTube
+    const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+    if (youtubeMatch) {
+      return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+    }
+
+    // Google Drive
+    const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveMatch) {
+      return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    }
+
+    // Vimeo
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    }
+
+    return null;
+  }
+
+  setupHelpModalListeners() {
+    const helpBtn = document.getElementById('helpBtn');
+    const closeBtn = document.getElementById('helpModalClose');
+    const closeBtnFooter = document.getElementById('helpModalCloseBtn');
+    const overlay = document.getElementById('helpModalOverlay');
+
+    if (helpBtn) {
+      helpBtn.addEventListener('click', () => this.showHelpModal());
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.hideHelpModal());
+    }
+
+    if (closeBtnFooter) {
+      closeBtnFooter.addEventListener('click', () => this.hideHelpModal());
+    }
+
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          this.hideHelpModal();
+        }
+      });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const overlay = document.getElementById('helpModalOverlay');
+        if (overlay && overlay.style.display !== 'none') {
+          this.hideHelpModal();
+        }
+      }
+    });
+  }
+
+  showHelpModal() {
+    const overlay = document.getElementById('helpModalOverlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+    }
+  }
+
+  hideHelpModal() {
+    const overlay = document.getElementById('helpModalOverlay');
+    if (overlay) {
+      overlay.style.display = 'none';
     }
   }
 

@@ -26,6 +26,9 @@
               <div class="progress-fill" id="progressFill" style="width: 0%"></div>
             </div>
           </div>
+          <button class="btn btn-help" id="helpBtn" style="display: none;" title="Help & Guides">
+            <span class="help-icon">?</span>
+          </button>
           <button class="btn btn-ghost" id="userBtn">Demo User</button>
         </div>
       </div>
@@ -88,6 +91,22 @@
         </div>
       </div>
     </aside>
+
+    <!-- Help Modal -->
+    <div class="help-modal-overlay" id="helpModalOverlay" style="display: none;">
+      <div class="help-modal">
+        <div class="help-modal-header">
+          <h2 class="help-modal-title" id="helpModalTitle">Help & Guides</h2>
+          <button class="help-modal-close" id="helpModalClose" title="Close">&times;</button>
+        </div>
+        <div class="help-modal-content" id="helpModalContent">
+          <!-- Dynamic help resources will be inserted here -->
+        </div>
+        <div class="help-modal-footer">
+          <button class="btn btn-primary" id="helpModalCloseBtn">Got it, start labeling!</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
