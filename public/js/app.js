@@ -273,20 +273,20 @@ class LabelMaker {
   }
 
   getVideoEmbedUrl(url) {
-    // YouTube
-    const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-    if (youtubeMatch) {
+    // YouTube - video IDs are exactly 11 characters
+    const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[?&]|$)/);
+    if (youtubeMatch && youtubeMatch[1].length === 11) {
       return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
     }
 
-    // Google Drive
-    const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    // Google Drive - file IDs are typically 33 characters
+    const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{25,50})/);
     if (driveMatch) {
       return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
     }
 
-    // Vimeo
-    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    // Vimeo - video IDs are numeric
+    const vimeoMatch = url.match(/vimeo\.com\/(\d{1,12})(?:[?/]|$)/);
     if (vimeoMatch) {
       return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
     }

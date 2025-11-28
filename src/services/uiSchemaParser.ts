@@ -137,7 +137,8 @@ export class UISchemaParser {
 
     return {
       title: help.$?.title ?? 'Help & Guides',
-      showOnLoad: help.$?.showOnLoad !== 'false', // Default to true
+      // Default to true if not explicitly set to 'false'
+      showOnLoad: help.$?.showOnLoad === undefined || help.$?.showOnLoad === 'true',
       resources
     };
   }
