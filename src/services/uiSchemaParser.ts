@@ -135,6 +135,11 @@ export class UISchemaParser {
       };
     });
 
+    // Return undefined if no resources are defined to prevent showing an empty modal
+    if (resources.length === 0) {
+      return undefined;
+    }
+
     return {
       title: help.$?.title ?? 'Help & Guides',
       // Default to true if not explicitly set to 'false'

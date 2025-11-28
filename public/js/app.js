@@ -43,6 +43,8 @@ class LabelMaker {
     this.timeSeriesCharts = [];
     this.dataPanelCharts = [];
     this.helpShown = false;
+    this.escapeListenerAdded = false;
+    this.helpContentRendered = false;
     
     this.init();
   }
@@ -153,6 +155,10 @@ class LabelMaker {
 
     if (!modalContent) return;
 
+    // Only render if not already rendered
+    if (this.helpContentRendered) return;
+    this.helpContentRendered = true;
+
     modalContent.innerHTML = '';
 
     helpConfig.resources.forEach(resource => {
@@ -194,12 +200,21 @@ class LabelMaker {
     }
   }
 
+  isSafeUrl(url) {
+    try {
+      const parsed = new URL(url);
+      return ['http:', 'https:'].includes(parsed.protocol);
+    } catch {
+      return false;
+    }
+  }
+
   renderResourceContent(resource) {
     const container = document.createElement('div');
 
     switch (resource.type) {
       case 'video':
-        if (resource.url) {
+        if (resource.url && this.isSafeUrl(resource.url)) {
           const embedUrl = this.getVideoEmbedUrl(resource.url);
           if (embedUrl) {
             const videoContainer = document.createElement('div');
@@ -208,6 +223,7 @@ class LabelMaker {
             iframe.src = embedUrl;
             iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
             iframe.allowFullscreen = true;
+            iframe.sandbox = 'allow-scripts allow-same-origin allow-presentation';
             videoContainer.appendChild(iframe);
             container.appendChild(videoContainer);
           } else {
@@ -224,13 +240,13 @@ class LabelMaker {
         break;
 
       case 'pdf':
-        if (resource.url) {
+        if (resource.url && this.isSafeUrl(resource.url)) {
           const link = document.createElement('a');
           link.href = resource.url;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           link.className = 'help-pdf-link';
-          link.innerHTML = '📄 Open PDF Document ↗';
+          link.textContent = '📄 Open PDF Document ↗';
           container.appendChild(link);
         }
         break;
@@ -242,7 +258,7 @@ class LabelMaker {
         break;
 
       case 'audio':
-        if (resource.url) {
+        if (resource.url && this.isSafeUrl(resource.url)) {
           const audio = document.createElement('audio');
           audio.controls = true;
           audio.className = 'help-audio-player';
@@ -253,7 +269,7 @@ class LabelMaker {
 
       case 'link':
       default:
-        if (resource.url) {
+        if (resource.url && this.isSafeUrl(resource.url)) {
           const link = document.createElement('a');
           link.href = resource.url;
           link.target = '_blank';
@@ -320,28 +336,73 @@ class LabelMaker {
       });
     }
 
-    // Close on Escape key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        const overlay = document.getElementById('helpModalOverlay');
-        if (overlay && overlay.style.display !== 'none') {
-          this.hideHelpModal();
+    // Close on Escape key, only add listener once
+    if (!this.escapeListenerAdded) {
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const overlay = document.getElementById('helpModalOverlay');
+          if (overlay && overlay.style.display !== 'none') {
+            this.hideHelpModal();
+          }
         }
-      }
-    });
+      });
+      this.escapeListenerAdded = true;
+    }
+  }
+
+  getFocusableElements(container) {
+    return container.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
   }
 
   showHelpModal() {
     const overlay = document.getElementById('helpModalOverlay');
     if (overlay) {
       overlay.style.display = 'flex';
+      // Move focus to close button when modal opens
+      const closeBtn = document.getElementById('helpModalClose');
+      if (closeBtn) {
+        closeBtn.focus();
+      }
+      // Setup focus trap
+      this.setupFocusTrap(overlay);
     }
+  }
+
+  setupFocusTrap(container) {
+    const focusableElements = this.getFocusableElements(container);
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+
+    container.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+
+      if (e.shiftKey) {
+        // Shift+Tab: if on first element, go to last
+        if (document.activeElement === firstFocusable) {
+          e.preventDefault();
+          lastFocusable.focus();
+        }
+      } else {
+        // Tab: if on last element, go to first
+        if (document.activeElement === lastFocusable) {
+          e.preventDefault();
+          firstFocusable.focus();
+        }
+      }
+    });
   }
 
   hideHelpModal() {
     const overlay = document.getElementById('helpModalOverlay');
     if (overlay) {
       overlay.style.display = 'none';
+      // Return focus to help button when modal closes
+      const helpBtn = document.getElementById('helpBtn');
+      if (helpBtn) {
+        helpBtn.focus();
+      }
     }
   }
 

@@ -27,7 +27,7 @@
     <Resource type="text" title="Welcome to ECG Classification">
       Welcome to the ECG Classification tool! This guide will help you understand how to classify ECG time series data. Please review each lead carefully and select the appropriate classification.
     </Resource>
-    <Resource type="video" title="Video Tutorial" url="https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
+    <Resource type="video" title="Video Tutorial (replace with your own link)" url="https://www.youtube.com/watch?v=REPLACE_WITH_TUTORIAL" />
     <Resource type="text" title="Classification Guidelines">
       - AF (Atrial Fibrillation): Look for irregular rhythm, absence of P waves, and variable R-R intervals.
       - Noise: Select this when the signal quality is poor or contains artifacts.

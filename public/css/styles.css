@@ -1113,6 +1113,11 @@ body {
   transform: scale(1.05);
 }
 
+.btn-help:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
+
 .help-icon {
   font-size: 1rem;
   font-weight: 700;
@@ -1200,6 +1205,11 @@ body {
 .help-modal-close:hover {
   background-color: var(--slate-200);
   color: var(--slate-800);
+}
+
+.help-modal-close:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
 }
 
 .help-modal-content {

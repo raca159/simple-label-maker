@@ -93,11 +93,11 @@
     </aside>
 
     <!-- Help Modal -->
-    <div class="help-modal-overlay" id="helpModalOverlay" style="display: none;">
+    <div class="help-modal-overlay" id="helpModalOverlay" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle" style="display: none;">
       <div class="help-modal">
         <div class="help-modal-header">
           <h2 class="help-modal-title" id="helpModalTitle">Help & Guides</h2>
-          <button class="help-modal-close" id="helpModalClose" title="Close">&times;</button>
+          <button class="help-modal-close" id="helpModalClose" title="Close" aria-label="Close help modal">&times;</button>
         </div>
         <div class="help-modal-content" id="helpModalContent">
           <!-- Dynamic help resources will be inserted here -->
