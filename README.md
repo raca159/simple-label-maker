@@ -125,7 +125,6 @@ The `sampleControl` object allows you to control navigation behavior and sample 
 ```
 
 **Resume Labeling Sessions**: Set `filterAnnotatedSamples` to `true` so users can stop labeling, return later, and automatically continue from where they left off. The progress bar shows "11/100" style progress indicating completed samples out of total.
-```
 
 ### UI Schema (`config/UI.xml`)
 

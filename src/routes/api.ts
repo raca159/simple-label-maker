@@ -97,6 +97,7 @@ router.get('/samples/filtered', async (req: Request, res: Response) => {
       annotatedCount: annotatedSampleIds.size
     });
   } catch (error) {
+    console.error('Failed to get filtered samples:', error);
     res.status(500).json({ error: 'Failed to get filtered samples' });
   }
 });

@@ -61,7 +61,9 @@ class LabelMaker {
       // Load UI schema
       await this.loadUISchema();
       
-      // Load saved annotations from localStorage before filtering
+      // Load saved annotations from localStorage before filtering.
+      // Note: Silent failure is acceptable here - if localStorage is unavailable or corrupted,
+      // we proceed with an empty annotations object and the user can re-annotate samples.
       this.loadSavedAnnotations();
       
       // Load samples (filtered if configured)
@@ -432,13 +434,17 @@ class LabelMaker {
       const response = await fetch('/api/samples/filtered');
       const data = await response.json();
       
-      // If server indicates we should filter on client (demo mode)
+      // Demo mode (filterOnClient=true): No Azure connection available, so we filter
+      // locally using localStorage annotations. This mode is session-specific and won't
+      // persist across devices. For production use with Azure, annotations are synced
+      // to blob storage and filtered server-side.
       if (data.filterOnClient) {
         // Filter out samples that are already annotated locally
         this.samples = this.allSamples.filter(s => !this.annotations[s.id]);
       } else {
+        // Azure mode: Server provides pre-filtered samples based on blob storage
         this.samples = data.samples;
-        // In Azure mode, track the server-reported annotated count
+        // Track the server-reported annotated count for progress display
         if (data.annotatedCount !== undefined) {
           this.serverAnnotatedCount = data.annotatedCount;
         }
@@ -472,9 +478,11 @@ class LabelMaker {
   }
 
   getAnnotatedCount() {
-    // If we have server-reported count, use it; otherwise use local count
+    // If we have server-reported count, use it directly (new annotations in this session
+    // are already saved to Azure via the API, so they're included in the server count
+    // on the next page load - we only use serverAnnotatedCount for display purposes)
     if (this.serverAnnotatedCount !== undefined) {
-      return this.serverAnnotatedCount + Object.keys(this.annotations).length;
+      return this.serverAnnotatedCount;
     }
     return Object.keys(this.annotations).length;
   }
@@ -1185,9 +1193,12 @@ class LabelMaker {
           const navInfo = await this.getNavigationInfo();
           if (navInfo.hasNext && navInfo.nextId) {
             this.loadSample(navInfo.nextId);
-          } else if (this.samples.length > 0) {
+          } else if (this.samples.length > 0 && this.sampleControl.filterAnnotatedSamples) {
             // Load first remaining sample (after filtering, current sample is removed)
             this.loadSample(this.samples[0].id);
+          } else {
+            // No next sample in non-filtered mode - stay on current sample
+            this.showToast('No more samples to annotate.', 'info');
           }
         }
       } else {
@@ -1318,12 +1329,15 @@ class LabelMaker {
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     
-    // Respect sample control settings
+    // Respect sample control settings - explicitly handle disabled state
     if (!this.sampleControl.disablePrevious && prevBtn) {
       prevBtn.disabled = !navInfo.hasPrevious;
       prevBtn.onclick = () => {
         if (navInfo.previousId) this.loadSample(navInfo.previousId);
       };
+    } else if (prevBtn) {
+      // Button is hidden via sampleControl, ensure it's also disabled
+      prevBtn.disabled = true;
     }
     
     if (!this.sampleControl.disableNext && nextBtn) {
@@ -1331,6 +1345,9 @@ class LabelMaker {
       nextBtn.onclick = () => {
         if (navInfo.nextId) this.loadSample(navInfo.nextId);
       };
+    } else if (nextBtn) {
+      // Button is hidden via sampleControl, ensure it's also disabled
+      nextBtn.disabled = true;
     }
   }
 
