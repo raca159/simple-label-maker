@@ -20,11 +20,13 @@ const router = Router();
 router.get('/project', (req: Request, res: Response) => {
   try {
     const config = configService.getConfig();
+    const sampleControl = configService.getSampleControlConfig();
     res.json({
       projectId: config.projectId,
       projectName: config.projectName,
       description: config.description,
-      totalSamples: config.samples.length
+      totalSamples: config.samples.length,
+      sampleControl: sampleControl
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get project info' });
@@ -48,6 +50,55 @@ router.get('/samples', (req: Request, res: Response) => {
     res.json(config.samples);
   } catch (error) {
     res.status(500).json({ error: 'Failed to get samples' });
+  }
+});
+
+// Get filtered samples for the current user (excludes already annotated samples if configured)
+router.get('/samples/filtered', async (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const config = configService.getConfig();
+    const sampleControl = configService.getSampleControlConfig();
+    
+    // If filtering is not enabled, return all samples
+    if (!sampleControl.filterAnnotatedSamples) {
+      res.json({
+        samples: config.samples,
+        totalSamples: config.samples.length,
+        remainingSamples: config.samples.length
+      });
+      return;
+    }
+    
+    // Get user ID for filtering
+    const userId = authReq.user?.userId ?? authReq.user?.azureObjectId ?? 'demo-user';
+    
+    // For demo mode without Azure, check localStorage on frontend instead
+    if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
+      res.json({
+        samples: config.samples,
+        totalSamples: config.samples.length,
+        remainingSamples: config.samples.length,
+        filterOnClient: true // Signal frontend to filter using localStorage
+      });
+      return;
+    }
+    
+    // Get annotated sample IDs for this user from Azure
+    const annotatedSampleIds = await storageService.getAnnotatedSampleIdsForUser(userId);
+    
+    // Filter out already annotated samples
+    const filteredSamples = config.samples.filter(s => !annotatedSampleIds.has(s.id));
+    
+    res.json({
+      samples: filteredSamples,
+      totalSamples: config.samples.length,
+      remainingSamples: filteredSamples.length,
+      annotatedCount: annotatedSampleIds.size
+    });
+  } catch (error) {
+    console.error('Failed to get filtered samples:', error);
+    res.status(500).json({ error: 'Failed to get filtered samples' });
   }
 });
 

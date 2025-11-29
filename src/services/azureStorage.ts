@@ -180,6 +180,34 @@ export class AzureStorageService {
 
     return { totalSamples, annotatedSamples };
   }
+
+  /**
+   * Get set of sample IDs that have been annotated by a specific user
+   */
+  async getAnnotatedSampleIdsForUser(userId: string): Promise<Set<string>> {
+    const annotatedIds = new Set<string>();
+    
+    if (!this.containerClient || !this.config) {
+      return annotatedIds;
+    }
+
+    const prefix = this.config.azureStorage.annotationsPath + '/';
+
+    for await (const blob of this.containerClient.listBlobsFlat({ prefix })) {
+      const fileName = blob.name.replace(prefix, '');
+      // Annotation files are named: {sampleId}_{userId}.json
+      const parts = fileName.replace('.json', '').split('_');
+      if (parts.length >= 2) {
+        const sampleId = parts.slice(0, -1).join('_'); // Handle sample IDs with underscores
+        const annotationUserId = parts[parts.length - 1];
+        if (annotationUserId === userId) {
+          annotatedIds.add(sampleId);
+        }
+      }
+    }
+
+    return annotatedIds;
+  }
 }
 
 export const storageService = new AzureStorageService();

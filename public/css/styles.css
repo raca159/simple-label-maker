@@ -1335,3 +1335,38 @@ body {
   width: 100%;
   border-radius: var(--radius);
 }
+
+
+/* Completion message styling */
+.completion-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem;
+  min-height: 300px;
+}
+
+.completion-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.completion-message h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--slate-800);
+  margin-bottom: 0.5rem;
+}
+
+.completion-message p {
+  font-size: 1rem;
+  color: var(--slate-600);
+  margin-bottom: 0.5rem;
+}
+
+.completion-stats {
+  font-weight: 500;
+  color: var(--emerald-500);
+}

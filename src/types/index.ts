@@ -1,3 +1,11 @@
+// Sample control configuration types
+export interface SampleControlConfig {
+  disableSkip?: boolean;
+  disablePrevious?: boolean;
+  disableNext?: boolean;
+  filterAnnotatedSamples?: boolean;
+}
+
 // Configuration types
 export interface ProjectConfig {
   projectId: string;
@@ -19,6 +27,7 @@ export interface ProjectConfig {
     };
   };
   samples: SampleInfo[];
+  sampleControl?: SampleControlConfig;
 }
 
 export interface SampleInfo {

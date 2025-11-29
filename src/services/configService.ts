@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ProjectConfig, UISchema } from '../types';
+import { ProjectConfig, UISchema, SampleControlConfig } from '../types';
 import { uiSchemaParser } from './uiSchemaParser';
 
 export class ConfigService {
@@ -89,6 +89,16 @@ export class ConfigService {
     }
 
     return this.config.samples[currentIndex - 1];
+  }
+
+  /**
+   * Get sample control configuration
+   */
+  getSampleControlConfig(): SampleControlConfig {
+    if (!this.config) {
+      throw new Error('Configuration not loaded');
+    }
+    return this.config.sampleControl ?? {};
   }
 
   /**
