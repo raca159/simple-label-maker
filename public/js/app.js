@@ -1405,7 +1405,7 @@ class LabelMaker {
       nextBtn.disabled = true;
     }
     
-    // Skip button state is handled by updateNavigationButtonStates to avoid duplication
+    // Skip button only needs submission requirement (no navigation availability check)
     if (!this.sampleControl.disableSkip && skipBtn) {
       skipBtn.disabled = requiresSubmit;
     } else if (skipBtn) {
