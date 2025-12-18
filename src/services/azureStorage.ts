@@ -77,13 +77,15 @@ export class AzureStorageService {
 
   /**
    * Save an annotation to Azure Blob Storage
+   * Uses user-based subdirectories: {annotationsPath}/{userId}/{sampleId}.json
    */
   async saveAnnotation(annotation: Annotation): Promise<void> {
     if (!this.containerClient || !this.config) {
       throw new Error('Storage service not initialized');
     }
 
-    const annotationPath = `${this.config.azureStorage.annotationsPath}/${annotation.sampleId}_${annotation.userId}.json`;
+    // Create user-based subdirectory structure
+    const annotationPath = `${this.config.azureStorage.annotationsPath}/${annotation.userId}/${annotation.sampleId}.json`;
     const blockBlobClient = this.containerClient.getBlockBlobClient(annotationPath);
     
     const content = JSON.stringify(annotation, null, 2);
@@ -96,18 +98,40 @@ export class AzureStorageService {
 
   /**
    * Get existing annotation for a sample and user
+   * Reads from user-based subdirectory: {annotationsPath}/{userId}/{sampleId}.json
    */
   async getAnnotation(sampleId: string, userId: string): Promise<Annotation | null> {
     if (!this.containerClient || !this.config) {
       throw new Error('Storage service not initialized');
     }
 
-    const annotationPath = `${this.config.azureStorage.annotationsPath}/${sampleId}_${userId}.json`;
+    // Use user-based subdirectory structure
+    const annotationPath = `${this.config.azureStorage.annotationsPath}/${userId}/${sampleId}.json`;
     const blobClient = this.containerClient.getBlobClient(annotationPath);
     
     const exists = await blobClient.exists();
     if (!exists) {
-      return null;
+      // Try legacy flat structure for backward compatibility
+      const legacyPath = `${this.config.azureStorage.annotationsPath}/${sampleId}_${userId}.json`;
+      const legacyBlobClient = this.containerClient.getBlobClient(legacyPath);
+      const legacyExists = await legacyBlobClient.exists();
+      
+      if (!legacyExists) {
+        return null;
+      }
+      
+      // Read from legacy location
+      const downloadResponse = await legacyBlobClient.download();
+      const chunks: Buffer[] = [];
+      
+      if (downloadResponse.readableStreamBody) {
+        for await (const chunk of downloadResponse.readableStreamBody) {
+          chunks.push(Buffer.from(chunk));
+        }
+      }
+      
+      const content = Buffer.concat(chunks).toString('utf-8');
+      return JSON.parse(content) as Annotation;
     }
 
     const downloadResponse = await blobClient.download();
@@ -124,29 +148,40 @@ export class AzureStorageService {
   }
 
   /**
-   * List all annotations for a sample
+   * List all annotations for a sample across all users
+   * Searches through user subdirectories for annotations matching the sample ID
    */
   async listAnnotationsForSample(sampleId: string): Promise<Annotation[]> {
     if (!this.containerClient || !this.config) {
       throw new Error('Storage service not initialized');
     }
 
-    const prefix = `${this.config.azureStorage.annotationsPath}/${sampleId}_`;
     const annotations: Annotation[] = [];
+    const prefix = `${this.config.azureStorage.annotationsPath}/`;
 
+    // Search through all blobs in annotations path (including user subdirectories)
     for await (const blob of this.containerClient.listBlobsFlat({ prefix })) {
-      const blobClient = this.containerClient.getBlobClient(blob.name);
-      const downloadResponse = await blobClient.download();
-      const chunks: Buffer[] = [];
+      // Check if this blob matches the sample ID
+      // New structure: annotations/{userId}/{sampleId}.json
+      // Legacy structure: annotations/{sampleId}_{userId}.json
+      const blobName = blob.name.replace(prefix, '');
+      const isNewStructure = blobName.includes('/') && blobName.endsWith(`/${sampleId}.json`);
+      const isLegacyStructure = blobName.startsWith(`${sampleId}_`) && blobName.endsWith('.json');
       
-      if (downloadResponse.readableStreamBody) {
-        for await (const chunk of downloadResponse.readableStreamBody) {
-          chunks.push(Buffer.from(chunk));
+      if (isNewStructure || isLegacyStructure) {
+        const blobClient = this.containerClient.getBlobClient(blob.name);
+        const downloadResponse = await blobClient.download();
+        const chunks: Buffer[] = [];
+        
+        if (downloadResponse.readableStreamBody) {
+          for await (const chunk of downloadResponse.readableStreamBody) {
+            chunks.push(Buffer.from(chunk));
+          }
         }
+        
+        const content = Buffer.concat(chunks).toString('utf-8');
+        annotations.push(JSON.parse(content) as Annotation);
       }
-      
-      const content = Buffer.concat(chunks).toString('utf-8');
-      annotations.push(JSON.parse(content) as Annotation);
     }
 
     return annotations;
@@ -154,6 +189,7 @@ export class AzureStorageService {
 
   /**
    * Get project statistics
+   * Counts unique annotated samples across both new (user subdirectory) and legacy (flat) structures
    */
   async getProjectStats(): Promise<{ totalSamples: number; annotatedSamples: number }> {
     if (!this.config) {
@@ -169,9 +205,22 @@ export class AzureStorageService {
 
       for await (const blob of this.containerClient.listBlobsFlat({ prefix })) {
         const fileName = blob.name.replace(prefix, '');
-        const sampleId = fileName.split('_')[0];
-        if (sampleId) {
-          annotatedIds.add(sampleId);
+        
+        // New structure: {userId}/{sampleId}.json
+        if (fileName.includes('/')) {
+          const parts = fileName.split('/');
+          if (parts.length >= 2) {
+            const sampleId = parts[1]?.replace('.json', '');
+            if (sampleId) {
+              annotatedIds.add(sampleId);
+            }
+          }
+        } else {
+          // Legacy structure: {sampleId}_{userId}.json
+          const sampleId = fileName.split('_')[0];
+          if (sampleId) {
+            annotatedIds.add(sampleId);
+          }
         }
       }
       
@@ -183,6 +232,7 @@ export class AzureStorageService {
 
   /**
    * Get set of sample IDs that have been annotated by a specific user
+   * Searches in user-specific subdirectory: {annotationsPath}/{userId}/
    */
   async getAnnotatedSampleIdsForUser(userId: string): Promise<Set<string>> {
     const annotatedIds = new Set<string>();
@@ -191,11 +241,26 @@ export class AzureStorageService {
       return annotatedIds;
     }
 
-    const prefix = this.config.azureStorage.annotationsPath + '/';
+    // Search in user-specific subdirectory first (new structure)
+    const userPrefix = `${this.config.azureStorage.annotationsPath}/${userId}/`;
+    
+    for await (const blob of this.containerClient.listBlobsFlat({ prefix: userPrefix })) {
+      const fileName = blob.name.replace(userPrefix, '');
+      // New structure: annotations/{userId}/{sampleId}.json
+      const sampleId = fileName.replace('.json', '');
+      annotatedIds.add(sampleId);
+    }
 
-    for await (const blob of this.containerClient.listBlobsFlat({ prefix })) {
-      const fileName = blob.name.replace(prefix, '');
-      // Annotation files are named: {sampleId}_{userId}.json
+    // Also check legacy flat structure for backward compatibility
+    const legacyPrefix = this.config.azureStorage.annotationsPath + '/';
+    
+    for await (const blob of this.containerClient.listBlobsFlat({ prefix: legacyPrefix })) {
+      const fileName = blob.name.replace(legacyPrefix, '');
+      // Skip files that are in subdirectories (new structure)
+      if (fileName.includes('/')) {
+        continue;
+      }
+      // Legacy structure: annotations/{sampleId}_{userId}.json
       const parts = fileName.replace('.json', '').split('_');
       if (parts.length >= 2) {
         const sampleId = parts.slice(0, -1).join('_'); // Handle sample IDs with underscores
