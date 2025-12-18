@@ -1353,9 +1353,10 @@ class LabelMaker {
   }
 
   updateNavigationButtonStates() {
-    // Update button states based on requireSubmitToNavigate setting
-    // This is a lightweight method that only handles the submission requirement
-    // Full navigation state (hasNext, hasPrevious) is handled by updateNavigation
+    // Lightweight method that updates button states based on submission requirement only
+    // This method does NOT check navigation availability (hasNext, hasPrevious) to avoid async API calls
+    // Use this when only the submission state has changed (e.g., after detecting an existing annotation)
+    // For full navigation updates with availability checks, use updateNavigation() instead
     const skipBtn = document.getElementById('skipBtn');
     const nextBtn = document.getElementById('nextBtn');
     const prevBtn = document.getElementById('prevBtn');
