@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<LabelingInterface title="Multi-Timeseries ECG Classification" description="Classify each ECG time series as AF, Noise, or None. Then provide a global sample classification and any observations.">
+<LabelingInterface title="Multi-Timeseries EGM STD Labeling" description="Classify each EGM time series as STD or non-STD. Then provide a global sample classification and any observations.">
   <Style>
     /* Custom styling for the labeling interface */
     .global-classification-section {
@@ -23,34 +23,30 @@
     }
   </Style>
 
-  <Help title="ECG Classification Guide" showOnLoad="true">
-    <Resource type="text" title="Welcome to ECG Classification">
-      Welcome to the ECG Classification tool! This guide will help you understand how to classify ECG time series data. Please review each lead carefully and select the appropriate classification.
-    </Resource>
-    <Resource type="video" title="Video Tutorial (replace with your own link)" url="https://www.youtube.com/watch?v=REPLACE_WITH_TUTORIAL" />
-    <Resource type="text" title="Classification Guidelines">
-      - AF (Atrial Fibrillation): Look for irregular rhythm, absence of P waves, and variable R-R intervals.
-      - Noise: Select this when the signal quality is poor or contains artifacts.
-      - Non-AF: Normal sinus rhythm or other arrhythmias that are not AF.
-    </Resource>
-    <Resource type="link" title="Reference Documentation" url="https://example.com/ecg-guide">Click here for detailed documentation</Resource>
+  <Help title="EGM Labeling Guide - Pentaray Catheter STD Analysis" showOnLoad="true">
+    <Resource type="video" title="Video Tutorial" url="https://drive.google.com/file/XXX" />
+    <Resource type="link" title="Protocol PDF" url="https://drive.google.com/file/XXX" />
+    <Resource type="link" title="Protocol Examples PDF" url="https://drive.google.com/file/XXX" />
   </Help>
 
   <DataSource type="time-series" field="seriesData" />
   
   <Labels>
-    <Label name="ecg" type="time-series" count="10" required="true" globalLabel="Sample Classification" commentLabel="Observations" xAxisTickSize="0" buttonSize="small">
+    <Label name="egm" type="time-series" count="10" required="true" instructions="Review each EGM lead and classify as STD or non-STD. Then provide a global classification and any observations." globalLabel="Sample Classification" commentLabel="Observations" xAxisTickSize="0" buttonSize="small">
       <Axis min="-1" max="1" />
       <SeriesOptions>
-        <Option value="AF" label="Atrial Fibrillation" color="#FF5733" />
-        <Option value="Noise" label="Noise" color="#FFC300" />
+        <Option value="STD" label="STD" color="#FF5733" />
+        <Option value="None" label="None" color="#C0C0C0" hidden="true" />
       </SeriesOptions>
       <GlobalOptions>
-        <Option value="AF" label="AF" color="#FF5733" />
-        <Option value="nonAF" label="Non-AF" color="#33FF57" />
+        <Option value="STD" label="STD" color="#FF5733" />
+        <Option value="nonSTD" label="non STD" color="#489f58ff" />
+        <Option value="Unstable" label="Unstable" color="#000000ff" />
       </GlobalOptions>
     </Label>
   </Labels>
+  
+  <SampleControl disableSkip="true" disablePrevious="true" disableNext="true" filterAnnotatedSamples="false" />
   
   <Layout columns="1" showProgress="true" showInstructions="true" spacing="compact" />
 </LabelingInterface>
