@@ -104,8 +104,11 @@ class LabelMaker {
     this.totalSamples = this.projectInfo.totalSamples;
     
     document.getElementById('projectName').textContent = this.projectInfo.projectName;
-    document.getElementById('projectDescription').textContent = 
-      this.projectInfo.description || 'No description provided.';
+    const descriptionEl = document.getElementById('projectDescription');
+    if (descriptionEl) {
+      descriptionEl.innerHTML = '';
+      descriptionEl.appendChild(this.parseMarkdown(this.projectInfo.description || 'No description provided.'));
+    }
   }
 
   async loadUISchema() {
@@ -114,6 +117,11 @@ class LabelMaker {
     
     document.getElementById('labelingTitle').textContent = 
       this.uiSchema.labelingInterface.title || 'Labels';
+    
+    // Override sampleControl from project info if UI.xml defines it
+    if (this.uiSchema.labelingInterface.sampleControl) {
+      this.sampleControl = this.uiSchema.labelingInterface.sampleControl;
+    }
     
     // Inject custom styles if provided in UI.xml
     this.applyCustomStyles();
@@ -270,9 +278,8 @@ class LabelMaker {
         break;
 
       case 'text':
-        const textContent = document.createElement('p');
-        textContent.textContent = resource.content || '';
-        container.appendChild(textContent);
+        const parsedContent = this.parseMarkdown(resource.content || '');
+        container.appendChild(parsedContent);
         break;
 
       case 'audio':
@@ -657,7 +664,7 @@ class LabelMaker {
     
     const inputType = label.multiSelect ? 'checkbox' : 'radio';
     
-    (label.options || []).forEach(option => {
+    (label.options || []).filter(opt => !opt.hidden).forEach(option => {
       const optionDiv = document.createElement('div');
       optionDiv.className = 'choice-option';
       optionDiv.dataset.value = option.value;
@@ -760,7 +767,7 @@ class LabelMaker {
     
     const instructionsText = document.createElement('p');
     instructionsText.className = 'instructions-text';
-    instructionsText.textContent = 'Classify each ECG lead individually, then provide a global classification and any observations.';
+    instructionsText.textContent = label.instructions || 'Label the samples below.';
     instructionsSection.appendChild(instructionsText);
     container.appendChild(instructionsSection);
 
@@ -775,7 +782,7 @@ class LabelMaker {
 
     const globalOptionsContainer = document.createElement('div');
     globalOptionsContainer.className = 'global-options';
-    globalOptions.forEach((opt, idx) => {
+    globalOptions.filter(opt => !opt.hidden).forEach((opt, idx) => {
       const radioLabel = document.createElement('label');
       radioLabel.className = 'global-option';
       radioLabel.innerHTML = `
@@ -823,7 +830,7 @@ class LabelMaker {
       const optionsContainer = document.createElement('div');
       optionsContainer.className = 'series-options-inline';
       
-      seriesOptions.forEach(opt => {
+      seriesOptions.filter(opt => !opt.hidden).forEach(opt => {
         const optLabel = document.createElement('label');
         optLabel.className = 'series-option-btn';
         if (label.buttonSize === 'small') {
@@ -1439,6 +1446,113 @@ class LabelMaker {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  parseMarkdown(markdown) {
+    // Create a container for the parsed markdown
+    const container = document.createElement('div');
+    container.className = 'markdown-content';
+    
+    // Split by lines and process
+    const lines = markdown.split('\n');
+    let currentList = null;
+    let currentListType = null;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      
+      // Skip empty lines
+      if (!trimmed) {
+        if (currentList) {
+          container.appendChild(currentList);
+          currentList = null;
+          currentListType = null;
+        }
+        continue;
+      }
+      
+      // Headers (# ## ###)
+      const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      if (headerMatch) {
+        if (currentList) {
+          container.appendChild(currentList);
+          currentList = null;
+        }
+        const level = headerMatch[1].length;
+        const title = headerMatch[2];
+        const header = document.createElement(`h${level + 1}`);
+        header.textContent = title;
+        container.appendChild(header);
+        continue;
+      }
+      
+      // Unordered lists (- or *)
+      const ulMatch = trimmed.match(/^[-*]\s+(.+)$/);
+      if (ulMatch) {
+        if (!currentList || currentListType !== 'ul') {
+          if (currentList) container.appendChild(currentList);
+          currentList = document.createElement('ul');
+          currentListType = 'ul';
+        }
+        const li = document.createElement('li');
+        li.innerHTML = this.parseInlineMarkdown(ulMatch[1]);
+        currentList.appendChild(li);
+        continue;
+      }
+      
+      // Ordered lists (1. 2. etc)
+      const olMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+      if (olMatch) {
+        if (!currentList || currentListType !== 'ol') {
+          if (currentList) container.appendChild(currentList);
+          currentList = document.createElement('ol');
+          currentListType = 'ol';
+        }
+        const li = document.createElement('li');
+        li.innerHTML = this.parseInlineMarkdown(olMatch[1]);
+        currentList.appendChild(li);
+        continue;
+      }
+      
+      // Regular paragraph
+      if (currentList) {
+        container.appendChild(currentList);
+        currentList = null;
+        currentListType = null;
+      }
+      const p = document.createElement('p');
+      p.innerHTML = this.parseInlineMarkdown(trimmed);
+      container.appendChild(p);
+    }
+    
+    // Append any remaining list
+    if (currentList) {
+      container.appendChild(currentList);
+    }
+    
+    return container;
+  }
+
+  parseInlineMarkdown(text) {
+    // Escape HTML first
+    let escaped = this.escapeHtml(text);
+    
+    // Bold (**text** or __text__)
+    escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    
+    // Italic (*text* or _text_)
+    escaped = escaped.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    escaped = escaped.replace(/_(.+?)_/g, '<em>$1</em>');
+    
+    // Links [text](url)
+    escaped = escaped.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    // Code (`text`)
+    escaped = escaped.replace(/`(.+?)`/g, '<code>$1</code>');
+    
+    return escaped;
   }
 }
 

@@ -64,6 +64,7 @@ export interface UISchema {
     layout?: LayoutConfig;
     customStyles?: string;
     help?: HelpConfig;
+    sampleControl?: SampleControlConfig;
   };
 }
 
@@ -103,6 +104,7 @@ export interface LabelOption {
   label: string;
   hotkey?: string;
   color?: string;
+  hidden?: boolean;
 }
 
 export interface LayoutConfig {

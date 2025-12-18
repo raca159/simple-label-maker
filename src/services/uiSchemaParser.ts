@@ -1,6 +1,6 @@
 import { parseString } from 'xml2js';
 import { promisify } from 'util';
-import { UISchema, LabelConfig, DataSource, LayoutConfig, LabelOption, AxisConfig, HelpConfig, HelpResource } from '../types';
+import { UISchema, LabelConfig, DataSource, LayoutConfig, LabelOption, AxisConfig, HelpConfig, HelpResource, SampleControlConfig } from '../types';
 
 const parseXml = promisify(parseString);
 
@@ -11,6 +11,7 @@ type ParsedOptionArray = Array<{
     label?: string;
     hotkey?: string;
     color?: string;
+    hidden?: string;
   };
 }>;
 
@@ -59,6 +60,14 @@ interface ParsedXML {
     }>;
     Style?: string[];
     Help?: ParsedHelpArray;
+    SampleControl?: Array<{
+      $?: {
+        disableSkip?: string;
+        disablePrevious?: string;
+        disableNext?: string;
+        filterAnnotatedSamples?: string;
+      };
+    }>;
   };
 }
 
@@ -110,7 +119,8 @@ export class UISchemaParser {
         labels: this.parseLabels(li.Labels),
         layout: this.parseLayout(li.Layout),
         customStyles: this.parseCustomStyles(li.Style),
-        help: this.parseHelp(li.Help)
+        help: this.parseHelp(li.Help),
+        sampleControl: this.parseSampleControl(li.SampleControl)
       }
     };
   }
@@ -228,7 +238,8 @@ export class UISchemaParser {
       value: opt.$?.value ?? '',
       label: opt.$?.label ?? opt.$?.value ?? '',
       hotkey: opt.$?.hotkey,
-      color: opt.$?.color
+      color: opt.$?.color,
+      hidden: opt.$?.hidden === 'true'
     }));
   }
 
@@ -267,6 +278,18 @@ export class UISchemaParser {
       showInstructions: layout.showInstructions === 'true',
       cssClass: layout.cssClass,
       spacing
+    };
+  }
+
+  private parseSampleControl(sampleControlArray?: Array<{ $?: { disableSkip?: string; disablePrevious?: string; disableNext?: string; filterAnnotatedSamples?: string } }>): SampleControlConfig | undefined {
+    const sampleControl = sampleControlArray?.[0];
+    if (!sampleControl?.$) return undefined;
+
+    return {
+      disableSkip: sampleControl.$.disableSkip === 'true',
+      disablePrevious: sampleControl.$.disablePrevious === 'true',
+      disableNext: sampleControl.$.disableNext === 'true',
+      filterAnnotatedSamples: sampleControl.$.filterAnnotatedSamples === 'true'
     };
   }
 
