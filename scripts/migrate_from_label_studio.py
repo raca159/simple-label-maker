@@ -9,7 +9,7 @@ Usage:
 import json
 import argparse
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 def parse_arguments():
@@ -79,7 +79,7 @@ def parse_metadata(metadata_str: str) -> Dict[str, Any]:
         sys.exit(1)
 
 
-def extract_data_url(task: Dict[str, Any], data_field: str = None) -> str:
+def extract_data_url(task: Dict[str, Any], data_field: Optional[str] = None) -> str:
     """Extract the data URL from a Label Studio task."""
     data = task.get('data', {})
     
@@ -104,7 +104,7 @@ def convert_tasks_to_samples(
     tasks: List[Dict[str, Any]], 
     sample_type: str, 
     metadata: Dict[str, Any],
-    data_field: str = None
+    data_field: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """Convert Label Studio tasks to Simple Label Maker sample format."""
     samples = []
@@ -122,9 +122,9 @@ def convert_tasks_to_samples(
                 'type': sample_type
             }
             
-            # Add metadata if provided (share the same reference to save memory)
+            # Add metadata if provided (copy to prevent unintended side effects)
             if metadata:
-                sample['metadata'] = metadata
+                sample['metadata'] = metadata.copy()
             
             samples.append(sample)
             
