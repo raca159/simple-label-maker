@@ -8,14 +8,21 @@ export class AzureStorageService {
 
   /**
    * Sanitize a string to prevent path traversal attacks
-   * Removes directory separators and path traversal sequences
+   * Removes directory separators, path traversal sequences, and URL-encoded variants
    */
   private sanitizePath(input: string): string {
     if (!input || input.trim() === '') {
       throw new Error('Path component cannot be empty');
     }
-    // Remove any path traversal sequences and directory separators
-    const sanitized = input.replace(/[\/\\\.]/g, '_');
+    // Decode URL encoding first to catch encoded path traversal attempts
+    let decoded = input;
+    try {
+      decoded = decodeURIComponent(input);
+    } catch {
+      // If decoding fails, continue with original input
+    }
+    // Remove any path traversal sequences, directory separators, and null bytes
+    const sanitized = decoded.replace(/[\/\\\.%\x00]/g, '_');
     if (sanitized !== input) {
       console.warn(`Path component sanitized: "${input}" -> "${sanitized}"`);
     }
@@ -25,7 +32,7 @@ export class AzureStorageService {
   /**
    * Download blob content and parse as JSON
    */
-  private async downloadBlobAsJson<T>(blobClient: any): Promise<T> {
+  private async downloadBlobAsJson<T>(blobClient: { download: () => Promise<any>; name?: string }): Promise<T> {
     const downloadResponse = await blobClient.download();
     const chunks: Buffer[] = [];
     
@@ -36,7 +43,12 @@ export class AzureStorageService {
     }
     
     const content = Buffer.concat(chunks).toString('utf-8');
-    return JSON.parse(content) as T;
+    try {
+      return JSON.parse(content) as T;
+    } catch (error) {
+      const blobPath = blobClient.name || 'unknown';
+      throw new Error(`Failed to parse JSON from blob ${blobPath}: ${error}`);
+    }
   }
 
   /**
