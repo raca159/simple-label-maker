@@ -1,0 +1,24 @@
+{
+  "projectId": "ecg-classification-external",
+  "projectName": "ECG Classification with External Task File",
+  "description": "Classify ECG time series recordings using external task file configuration.",
+  "azureStorage": {
+    "accountName": "your-storage-account",
+    "containerName": "ecg-labeling",
+    "dataPath": "ecg-samples",
+    "annotationsPath": "annotations"
+  },
+  "authentication": {
+    "azureB2C": {
+      "tenantId": "your-tenant-id",
+      "clientId": "your-client-id",
+      "authority": "https://your-tenant.b2clogin.com/your-tenant.onmicrosoft.com/B2C_1_signupsignin",
+      "redirectUri": "http://localhost:3000/auth/callback",
+      "scopes": ["openid", "profile", "email"]
+    }
+  },
+  "sampleTask": {
+    "fileName": "samples-external.json"
+  },
+  "samples": []
+}

@@ -1,11 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ProjectConfig, UISchema, SampleControlConfig } from '../types';
+import { ProjectConfig, UISchema, SampleControlConfig, SampleInfo } from '../types';
 import { uiSchemaParser } from './uiSchemaParser';
 
 export class ConfigService {
   private config: ProjectConfig | null = null;
   private uiSchema: UISchema | null = null;
+  private configDir: string = '';
 
   /**
    * Load project configuration from file
@@ -13,7 +14,92 @@ export class ConfigService {
   async loadConfig(configPath: string): Promise<ProjectConfig> {
     const configContent = fs.readFileSync(configPath, 'utf-8');
     this.config = JSON.parse(configContent) as ProjectConfig;
+    this.configDir = path.dirname(configPath);
+    
+    // Load samples from external file if sampleTask is specified
+    await this.loadSamplesFromTaskFile();
+    
     return this.config;
+  }
+
+  /**
+   * Load samples from external task file if sampleTask is configured
+   */
+  private async loadSamplesFromTaskFile(): Promise<void> {
+    if (!this.config) {
+      return;
+    }
+
+    // Check if sampleTask is configured and not null
+    if (this.config.sampleTask && this.config.sampleTask.fileName) {
+      try {
+        // Resolve the task file path relative to the config directory
+        const taskFilePath = path.isAbsolute(this.config.sampleTask.fileName)
+          ? this.config.sampleTask.fileName
+          : path.join(this.configDir, this.config.sampleTask.fileName);
+
+        // Load the task file asynchronously
+        const taskFileContent = await fs.promises.readFile(taskFilePath, 'utf-8');
+        let samples: SampleInfo[];
+        
+        try {
+          samples = JSON.parse(taskFileContent) as SampleInfo[];
+        } catch (parseError) {
+          throw new Error(`Failed to parse JSON in task file '${taskFilePath}': ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+        }
+
+        // Validate that the task file contains an array of samples
+        if (!Array.isArray(samples)) {
+          throw new Error(`Task file '${taskFilePath}' must contain an array of samples`);
+        }
+
+        // Validate structure of each sample and ensure unique IDs
+        const seenIds = new Set<string>();
+        samples.forEach((sample, index) => {
+          if (sample == null || typeof sample !== 'object') {
+            throw new Error(
+              `Sample at index ${index} in task file '${taskFilePath}' must be a non-null object`
+            );
+          }
+
+          const { id, fileName, type } = sample as SampleInfo;
+
+          if (typeof id !== 'string' || id.trim() === '') {
+            throw new Error(
+              `Sample at index ${index} in task file '${taskFilePath}' must have a non-empty 'id' string property`
+            );
+          }
+
+          if (typeof fileName !== 'string' || fileName.trim() === '') {
+            throw new Error(
+              `Sample '${id}' in task file '${taskFilePath}' must have a non-empty 'fileName' string property`
+            );
+          }
+
+          if (typeof type !== 'string' || type.trim() === '') {
+            throw new Error(
+              `Sample '${id}' in task file '${taskFilePath}' must have a non-empty 'type' string property`
+            );
+          }
+
+          if (seenIds.has(id)) {
+            throw new Error(
+              `Duplicate sample id '${id}' found in task file '${taskFilePath}'`
+            );
+          }
+
+          seenIds.add(id);
+        });
+
+        // Replace the samples array with the loaded samples
+        this.config.samples = samples;
+
+        console.log(`Loaded ${samples.length} samples from task file: ${taskFilePath}`);
+      } catch (error) {
+        console.error('Failed to load samples from task file:', error);
+        throw new Error(`Failed to load samples from task file: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
   }
 
   /**

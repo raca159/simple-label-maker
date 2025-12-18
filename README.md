@@ -127,6 +127,112 @@ The `sampleControl` object allows you to control navigation behavior and sample 
 
 **Resume Labeling Sessions**: Set `filterAnnotatedSamples` to `true` so users can stop labeling, return later, and automatically continue from where they left off. The progress bar shows "11/100" style progress indicating completed samples out of total.
 
+### External Task Files
+
+You can load samples from an external JSON file instead of defining them inline in `project.json`. This is useful for:
+- Managing large sample lists separately
+- Migrating from Label Studio or other tools
+- Dynamically generating sample lists
+
+#### Using External Task Files
+
+To use an external task file, add a `sampleTask` field to your `project.json`:
+
+```json
+{
+  "projectId": "my-project",
+  "projectName": "My Labeling Project",
+  "description": "Project description",
+  "azureStorage": { ... },
+  "authentication": { ... },
+  "sampleTask": {
+    "fileName": "samples.json"
+  },
+  "samples": []
+}
+```
+
+The `fileName` can be:
+- A relative path (resolved from the `config/` directory): `"samples.json"`
+- An absolute path: `"/path/to/samples.json"`
+
+When `sampleTask` is specified, the `samples` array in `project.json` is ignored.
+
+#### Task File Format
+
+The external task file should be a JSON array of sample objects:
+
+```json
+[
+  {
+    "id": "sample-001",
+    "fileName": "https://example.blob.core.windows.net/data/sample.001.csv",
+    "type": "time-series",
+    "metadata": {
+      "channelCount": 10
+    }
+  },
+  {
+    "id": "sample-002",
+    "fileName": "data/sample.002.jpg",
+    "type": "image"
+  }
+]
+```
+
+#### Migrating from Label Studio
+
+If you're migrating from Label Studio, you can use the included migration script to convert Label Studio task files to Simple Label Maker format:
+
+```bash
+python3 scripts/migrate_from_label_studio.py \
+  --task label_studio_tasks.json \
+  --type time-series \
+  --metadata '{"channelCount": 10}' \
+  --output config/samples.json
+```
+
+**Arguments:**
+- `--task`: Path to your Label Studio task JSON file
+- `--type`: Sample type to apply to all samples (`image`, `text`, `audio`, `video`, `time-series`)
+- `--metadata`: JSON string of metadata to apply to all samples (optional)
+- `--output`: Output file path (default: `samples.json`)
+- `--data-field`: Specific data field to extract (e.g., `csv_url`). If not specified, uses the first data field found.
+
+**Label Studio Task Format Example:**
+
+```json
+[
+  [
+    {
+      "id": "task_0",
+      "data": {
+        "csv_url": "https://storage.blob.core.windows.net/data/sample.1772.csv"
+      }
+    }
+  ],
+  [
+    {
+      "id": "task_1",
+      "data": {
+        "csv_url": "https://storage.blob.core.windows.net/data/sample.968.csv"
+      }
+    }
+  ]
+]
+```
+
+After migration, update your `project.json` to use the generated task file:
+
+```json
+{
+  "sampleTask": {
+    "fileName": "samples.json"
+  },
+  "samples": []
+}
+```
+
 ### UI Schema (`config/UI.xml`)
 
 Define your labeling interface using XML. You can start with one of the pre-built templates:
