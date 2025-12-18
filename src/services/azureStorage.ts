@@ -150,6 +150,8 @@ export class AzureStorageService {
   /**
    * List all annotations for a sample across all users
    * Searches through user subdirectories for annotations matching the sample ID
+   * Note: Azure Blob Storage doesn't support wildcard patterns like annotations/*\/sampleId.json,
+   * so we must list all blobs and filter by pattern
    */
   async listAnnotationsForSample(sampleId: string): Promise<Annotation[]> {
     if (!this.containerClient || !this.config) {
@@ -209,9 +211,9 @@ export class AzureStorageService {
         // New structure: {userId}/{sampleId}.json
         if (fileName.includes('/')) {
           const parts = fileName.split('/');
-          if (parts.length >= 2) {
-            const sampleId = parts[1]?.replace('.json', '');
-            if (sampleId) {
+          if (parts.length >= 2 && parts[1]) {
+            const sampleId = parts[1].replace('.json', '');
+            if (sampleId && sampleId !== '') {
               annotatedIds.add(sampleId);
             }
           }
@@ -248,7 +250,9 @@ export class AzureStorageService {
       const fileName = blob.name.replace(userPrefix, '');
       // New structure: annotations/{userId}/{sampleId}.json
       const sampleId = fileName.replace('.json', '');
-      annotatedIds.add(sampleId);
+      if (sampleId && sampleId !== '') {
+        annotatedIds.add(sampleId);
+      }
     }
 
     // Also check legacy flat structure for backward compatibility
