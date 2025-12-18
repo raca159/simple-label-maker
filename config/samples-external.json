@@ -1,0 +1,29 @@
+[
+  {
+    "id": "sample-001",
+    "fileName": "https://labeldataus001.blob.core.windows.net/data/afdata/sample.1772.csv",
+    "type": "time-series",
+    "metadata": {
+      "channelCount": 10,
+      "description": "AF positive sample 1"
+    }
+  },
+  {
+    "id": "sample-002",
+    "fileName": "https://labeldataus001.blob.core.windows.net/data/afdata/sample.968.csv",
+    "type": "time-series",
+    "metadata": {
+      "channelCount": 10,
+      "description": "AF positive sample 2"
+    }
+  },
+  {
+    "id": "sample-003",
+    "fileName": "https://labeldataus001.blob.core.windows.net/data/afdata/sample.123.csv",
+    "type": "time-series",
+    "metadata": {
+      "channelCount": 10,
+      "description": "AF negative sample 1"
+    }
+  }
+]

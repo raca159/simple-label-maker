@@ -7,6 +7,11 @@ export interface SampleControlConfig {
   requireSubmitToNavigate?: boolean;
 }
 
+// Sample task configuration for external task file
+export interface SampleTaskConfig {
+  fileName: string;
+}
+
 // Configuration types
 export interface ProjectConfig {
   projectId: string;
@@ -27,6 +32,7 @@ export interface ProjectConfig {
       scopes: string[];
     };
   };
+  sampleTask?: SampleTaskConfig | null;
   samples: SampleInfo[];
   sampleControl?: SampleControlConfig;
 }
