@@ -85,7 +85,8 @@ docker run -p 3000:3000 simple-label-maker
     "disableSkip": false,
     "disablePrevious": false,
     "disableNext": false,
-    "filterAnnotatedSamples": false
+    "filterAnnotatedSamples": false,
+    "requireSubmitToNavigate": false
   },
   "samples": [
     {

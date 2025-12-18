@@ -394,6 +394,66 @@ The `<Layout>` element controls the display of the labeling interface.
 
 ---
 
+## SampleControl Element
+
+The `<SampleControl>` element allows you to control navigation behavior and sample filtering in the labeling interface.
+
+### Attributes
+
+| Attribute | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `disableSkip` | No | `false` | Hides the Skip button |
+| `disablePrevious` | No | `false` | Hides the Previous button |
+| `disableNext` | No | `false` | Hides the Next button |
+| `filterAnnotatedSamples` | No | `false` | Only show unannotated samples |
+| `requireSubmitToNavigate` | No | `false` | Disable Skip/Next buttons until annotation is submitted |
+
+### Examples
+
+#### Require Submission Before Navigation
+
+Force users to submit an annotation before moving to the next sample. This prevents users from skipping samples without labeling them:
+
+```xml
+<SampleControl requireSubmitToNavigate="true" />
+```
+
+#### Disable Navigation Buttons
+
+Hide specific navigation buttons to control the labeling workflow:
+
+```xml
+<SampleControl disableSkip="true" disablePrevious="true" />
+```
+
+#### Filter Annotated Samples
+
+Show only samples that haven't been annotated yet:
+
+```xml
+<SampleControl filterAnnotatedSamples="true" />
+```
+
+#### Combined Configuration
+
+Combine multiple settings for strict workflows:
+
+```xml
+<SampleControl 
+  requireSubmitToNavigate="true" 
+  disableSkip="true" 
+  disablePrevious="true"
+  filterAnnotatedSamples="true" />
+```
+
+### Usage Notes
+
+- **`requireSubmitToNavigate`**: When enabled, the Skip and Next buttons are disabled until the user clicks Submit. This is useful for ensuring all samples in the queue are labeled before moving forward.
+- **`filterAnnotatedSamples`**: In demo mode (without Azure Storage), filtering is done client-side using localStorage. In production with Azure, filtering is done server-side.
+- Navigation controls can be configured in either `UI.xml` or `project.json`. Settings in `UI.xml` take precedence.
+
+---
+
 ## Complete Schema Examples
 
 ### Image Classification

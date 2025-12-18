@@ -31,5 +31,8 @@
     <Label name="notes" type="text-input" required="false" />
   </Labels>
   
+  <!-- Optional: Control navigation behavior -->
+  <!-- <SampleControl requireSubmitToNavigate="true" disableSkip="false" disablePrevious="false" disableNext="false" filterAnnotatedSamples="false" /> -->
+  
   <Layout columns="1" showProgress="true" showInstructions="true" />
 </LabelingInterface>

@@ -49,6 +49,7 @@ class LabelMaker {
     this.sampleControl = {}; // Sample control configuration
     this.totalSamples = 0; // Total samples in project
     this.serverAnnotatedCount = undefined; // Track server-reported annotated count
+    this.currentSampleSubmitted = false; // Track if current sample has been submitted
     
     this.init();
   }
@@ -482,6 +483,9 @@ class LabelMaker {
     if (this.sampleControl.disableNext && nextBtn) {
       nextBtn.style.display = 'none';
     }
+    
+    // Apply initial state for requireSubmitToNavigate
+    this.updateNavigationButtonStates();
   }
 
   getAnnotatedCount() {
@@ -522,6 +526,9 @@ class LabelMaker {
 
   async loadSample(sampleId) {
     this.currentSampleId = sampleId;
+    
+    // Reset submission state for new sample
+    this.currentSampleSubmitted = false;
     
     // Update URL
     window.history.pushState({}, '', `/label/${sampleId}`);
@@ -1177,9 +1184,16 @@ class LabelMaker {
       });
 
       if (response.ok) {
+        // Mark current sample as submitted
+        this.currentSampleSubmitted = true;
+        
         // Save to localStorage
         this.saveAnnotationLocally(this.currentSampleId, labels);
         this.showToast('Annotation submitted successfully!', 'success');
+        
+        // Update navigation button states to enable Next/Skip if requireSubmitToNavigate is enabled
+        this.updateNavigationButtonStates();
+        await this.updateNavigation();
         
         // Store current sample ID before modifying the list
         const submittedSampleId = this.currentSampleId;
@@ -1236,6 +1250,10 @@ class LabelMaker {
   loadAnnotationForSample(sampleId) {
     const savedLabels = this.annotations[sampleId];
     if (!savedLabels) return;
+    
+    // If sample already has an annotation, mark it as submitted
+    this.currentSampleSubmitted = true;
+    this.updateNavigationButtonStates();
     
     // Restore saved labels
     Object.entries(savedLabels).forEach(([labelName, value]) => {
@@ -1330,11 +1348,29 @@ class LabelMaker {
     return await response.json();
   }
 
+  updateNavigationButtonStates() {
+    // Update button states based on requireSubmitToNavigate setting
+    if (this.sampleControl.requireSubmitToNavigate) {
+      const skipBtn = document.getElementById('skipBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      
+      // Disable Skip and Next buttons if current sample hasn't been submitted
+      if (skipBtn && !this.sampleControl.disableSkip) {
+        skipBtn.disabled = !this.currentSampleSubmitted;
+      }
+      
+      if (nextBtn && !this.sampleControl.disableNext) {
+        nextBtn.disabled = !this.currentSampleSubmitted;
+      }
+    }
+  }
+
   async updateNavigation() {
     const navInfo = await this.getNavigationInfo();
     
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
+    const skipBtn = document.getElementById('skipBtn');
     
     // Respect sample control settings - explicitly handle disabled state
     if (!this.sampleControl.disablePrevious && prevBtn) {
@@ -1348,13 +1384,23 @@ class LabelMaker {
     }
     
     if (!this.sampleControl.disableNext && nextBtn) {
-      nextBtn.disabled = !navInfo.hasNext;
+      // Check both navigation availability and submission requirement
+      const requiresSubmit = this.sampleControl.requireSubmitToNavigate && !this.currentSampleSubmitted;
+      nextBtn.disabled = !navInfo.hasNext || requiresSubmit;
       nextBtn.onclick = () => {
         if (navInfo.nextId) this.loadSample(navInfo.nextId);
       };
     } else if (nextBtn) {
       // Button is hidden via sampleControl, ensure it's also disabled
       nextBtn.disabled = true;
+    }
+    
+    // Handle Skip button state based on requireSubmitToNavigate
+    if (!this.sampleControl.disableSkip && skipBtn) {
+      const requiresSubmit = this.sampleControl.requireSubmitToNavigate && !this.currentSampleSubmitted;
+      skipBtn.disabled = requiresSubmit;
+    } else if (skipBtn) {
+      skipBtn.disabled = true;
     }
   }
 
@@ -1384,6 +1430,12 @@ class LabelMaker {
 
     // Skip button
     document.getElementById('skipBtn').addEventListener('click', async () => {
+      // Check if navigation requires submission
+      if (this.sampleControl.requireSubmitToNavigate && !this.currentSampleSubmitted) {
+        this.showToast('Please submit the annotation before skipping.', 'warning');
+        return;
+      }
+      
       const navInfo = await this.getNavigationInfo();
       if (navInfo.hasNext) {
         this.loadSample(navInfo.nextId);
