@@ -92,7 +92,10 @@ simple-label-maker/
 │       └── app.js                 # Frontend JavaScript (LabelMaker class)
 ├── config/                        # Configuration files
 │   ├── project.json               # Project configuration
-│   └── UI.xml                     # Labeling interface schema
+│   ├── UI.xml                     # Labeling interface schema
+│   └── samples-external.json      # Example external task file (optional)
+├── scripts/                       # Utility scripts
+│   └── migrate_from_label_studio.py  # Label Studio migration script
 ├── Dockerfile                     # Docker build file
 ├── docker-compose.yml             # Docker Compose configuration
 ├── package.json                   # Node.js dependencies
@@ -244,6 +247,7 @@ class LabelMaker {
       "scopes": ["openid", "profile", "email"]
     }
   },
+  "sampleTask": null,
   "samples": [
     {
       "id": "sample-001",
@@ -274,6 +278,64 @@ class LabelMaker {
   <Layout columns="1" showProgress="true" showInstructions="true" />
 </LabelingInterface>
 ```
+
+---
+
+## External Task Files and Label Studio Migration
+
+### Using External Task Files
+
+Samples can be loaded from an external JSON file instead of being defined inline in `project.json`. This is useful for:
+- Managing large sample lists separately
+- Migrating from Label Studio or other tools
+- Dynamically generating sample lists
+
+To use an external task file, set the `sampleTask` field in `project.json`:
+
+```json
+{
+  "projectId": "my-project",
+  "projectName": "My Labeling Project",
+  "sampleTask": {
+    "fileName": "samples.json"
+  },
+  "samples": []
+}
+```
+
+The task file should be a JSON array of sample objects:
+
+```json
+[
+  {
+    "id": "sample-001",
+    "fileName": "https://storage.blob.core.windows.net/data/sample.csv",
+    "type": "time-series",
+    "metadata": {
+      "channelCount": 10
+    }
+  }
+]
+```
+
+### Migrating from Label Studio
+
+Use the `scripts/migrate_from_label_studio.py` script to convert Label Studio task files:
+
+```bash
+python3 scripts/migrate_from_label_studio.py \
+  --task label_studio_tasks.json \
+  --type time-series \
+  --metadata '{"channelCount": 10}' \
+  --output config/samples.json
+```
+
+**Arguments:**
+- `--task`: Path to Label Studio task JSON file (required)
+- `--type`: Sample type: `image`, `text`, `audio`, `video`, `time-series` (required)
+- `--metadata`: JSON string of metadata to apply to all samples (optional)
+- `--output`: Output file path (default: `samples.json`)
+- `--data-field`: Specific data field to extract (e.g., `csv_url`). If not specified, uses first data field found.
 
 ---
 
