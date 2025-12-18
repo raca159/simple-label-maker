@@ -40,11 +40,17 @@ export class ConfigService {
 
         // Load the task file
         const taskFileContent = fs.readFileSync(taskFilePath, 'utf-8');
-        const samples = JSON.parse(taskFileContent) as SampleInfo[];
+        let samples: SampleInfo[];
+        
+        try {
+          samples = JSON.parse(taskFileContent) as SampleInfo[];
+        } catch (parseError) {
+          throw new Error(`Failed to parse JSON in task file '${taskFilePath}': ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+        }
 
         // Validate that the task file contains an array of samples
         if (!Array.isArray(samples)) {
-          throw new Error('Task file must contain an array of samples');
+          throw new Error(`Task file '${taskFilePath}' must contain an array of samples`);
         }
 
         // Replace the samples array with the loaded samples

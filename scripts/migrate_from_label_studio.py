@@ -108,10 +108,12 @@ def convert_tasks_to_samples(
 ) -> List[Dict[str, Any]]:
     """Convert Label Studio tasks to Simple Label Maker sample format."""
     samples = []
+    task_counter = 0
     
     for task in tasks:
         try:
-            task_id = task.get('id', f'task_{len(samples)}')
+            task_id = task.get('id', f'task_{task_counter}')
+            task_counter += 1
             data_url = extract_data_url(task, data_field)
             
             sample = {
@@ -120,14 +122,15 @@ def convert_tasks_to_samples(
                 'type': sample_type
             }
             
-            # Add metadata if provided
+            # Add metadata if provided (share the same reference to save memory)
             if metadata:
-                sample['metadata'] = metadata.copy()
+                sample['metadata'] = metadata
             
             samples.append(sample)
             
         except ValueError as e:
             print(f"Warning: Skipping task - {e}", file=sys.stderr)
+            task_counter += 1
             continue
     
     return samples
