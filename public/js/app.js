@@ -1348,20 +1348,23 @@ class LabelMaker {
     return await response.json();
   }
 
+  shouldDisableNavigationButton() {
+    // Returns true if navigation should be disabled due to submission requirement
+    return this.sampleControl.requireSubmitToNavigate && !this.currentSampleSubmitted;
+  }
+
   updateNavigationButtonStates() {
     // Update button states based on requireSubmitToNavigate setting
-    if (this.sampleControl.requireSubmitToNavigate) {
-      const skipBtn = document.getElementById('skipBtn');
-      const nextBtn = document.getElementById('nextBtn');
-      
-      // Disable Skip and Next buttons if current sample hasn't been submitted
-      if (skipBtn && !this.sampleControl.disableSkip) {
-        skipBtn.disabled = !this.currentSampleSubmitted;
-      }
-      
-      if (nextBtn && !this.sampleControl.disableNext) {
-        nextBtn.disabled = !this.currentSampleSubmitted;
-      }
+    const skipBtn = document.getElementById('skipBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const requiresSubmit = this.shouldDisableNavigationButton();
+    
+    if (skipBtn && !this.sampleControl.disableSkip) {
+      skipBtn.disabled = requiresSubmit;
+    }
+    
+    if (nextBtn && !this.sampleControl.disableNext) {
+      nextBtn.disabled = requiresSubmit;
     }
   }
 
@@ -1371,6 +1374,7 @@ class LabelMaker {
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const skipBtn = document.getElementById('skipBtn');
+    const requiresSubmit = this.shouldDisableNavigationButton();
     
     // Respect sample control settings - explicitly handle disabled state
     if (!this.sampleControl.disablePrevious && prevBtn) {
@@ -1385,7 +1389,6 @@ class LabelMaker {
     
     if (!this.sampleControl.disableNext && nextBtn) {
       // Check both navigation availability and submission requirement
-      const requiresSubmit = this.sampleControl.requireSubmitToNavigate && !this.currentSampleSubmitted;
       nextBtn.disabled = !navInfo.hasNext || requiresSubmit;
       nextBtn.onclick = () => {
         if (navInfo.nextId) this.loadSample(navInfo.nextId);
@@ -1397,7 +1400,6 @@ class LabelMaker {
     
     // Handle Skip button state based on requireSubmitToNavigate
     if (!this.sampleControl.disableSkip && skipBtn) {
-      const requiresSubmit = this.sampleControl.requireSubmitToNavigate && !this.currentSampleSubmitted;
       skipBtn.disabled = requiresSubmit;
     } else if (skipBtn) {
       skipBtn.disabled = true;
