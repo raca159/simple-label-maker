@@ -7,6 +7,39 @@ export class AzureStorageService {
   private config: ProjectConfig | null = null;
 
   /**
+   * Sanitize a string to prevent path traversal attacks
+   * Removes directory separators and path traversal sequences
+   */
+  private sanitizePath(input: string): string {
+    if (!input || input.trim() === '') {
+      throw new Error('Path component cannot be empty');
+    }
+    // Remove any path traversal sequences and directory separators
+    const sanitized = input.replace(/[\/\\\.]/g, '_');
+    if (sanitized !== input) {
+      console.warn(`Path component sanitized: "${input}" -> "${sanitized}"`);
+    }
+    return sanitized;
+  }
+
+  /**
+   * Download blob content and parse as JSON
+   */
+  private async downloadBlobAsJson<T>(blobClient: any): Promise<T> {
+    const downloadResponse = await blobClient.download();
+    const chunks: Buffer[] = [];
+    
+    if (downloadResponse.readableStreamBody) {
+      for await (const chunk of downloadResponse.readableStreamBody) {
+        chunks.push(Buffer.from(chunk));
+      }
+    }
+    
+    const content = Buffer.concat(chunks).toString('utf-8');
+    return JSON.parse(content) as T;
+  }
+
+  /**
    * Initialize Azure Storage with project configuration
    */
   async initialize(config: ProjectConfig): Promise<void> {
@@ -84,8 +117,12 @@ export class AzureStorageService {
       throw new Error('Storage service not initialized');
     }
 
+    // Validate and sanitize inputs to prevent path traversal
+    const sanitizedUserId = this.sanitizePath(annotation.userId);
+    const sanitizedSampleId = this.sanitizePath(annotation.sampleId);
+
     // Create user-based subdirectory structure
-    const annotationPath = `${this.config.azureStorage.annotationsPath}/${annotation.userId}/${annotation.sampleId}.json`;
+    const annotationPath = `${this.config.azureStorage.annotationsPath}/${sanitizedUserId}/${sanitizedSampleId}.json`;
     const blockBlobClient = this.containerClient.getBlockBlobClient(annotationPath);
     
     const content = JSON.stringify(annotation, null, 2);
@@ -98,21 +135,25 @@ export class AzureStorageService {
 
   /**
    * Get existing annotation for a sample and user
-   * Reads from user-based subdirectory: {annotationsPath}/{userId}/{sampleId}.json
+   * Reads from user-based subdirectory, falls back to legacy flat structure if not found.
    */
   async getAnnotation(sampleId: string, userId: string): Promise<Annotation | null> {
     if (!this.containerClient || !this.config) {
       throw new Error('Storage service not initialized');
     }
 
+    // Validate and sanitize inputs to prevent path traversal
+    const sanitizedUserId = this.sanitizePath(userId);
+    const sanitizedSampleId = this.sanitizePath(sampleId);
+
     // Use user-based subdirectory structure
-    const annotationPath = `${this.config.azureStorage.annotationsPath}/${userId}/${sampleId}.json`;
+    const annotationPath = `${this.config.azureStorage.annotationsPath}/${sanitizedUserId}/${sanitizedSampleId}.json`;
     const blobClient = this.containerClient.getBlobClient(annotationPath);
     
     const exists = await blobClient.exists();
     if (!exists) {
       // Try legacy flat structure for backward compatibility
-      const legacyPath = `${this.config.azureStorage.annotationsPath}/${sampleId}_${userId}.json`;
+      const legacyPath = `${this.config.azureStorage.annotationsPath}/${sanitizedSampleId}_${sanitizedUserId}.json`;
       const legacyBlobClient = this.containerClient.getBlobClient(legacyPath);
       const legacyExists = await legacyBlobClient.exists();
       
@@ -121,42 +162,25 @@ export class AzureStorageService {
       }
       
       // Read from legacy location
-      const downloadResponse = await legacyBlobClient.download();
-      const chunks: Buffer[] = [];
-      
-      if (downloadResponse.readableStreamBody) {
-        for await (const chunk of downloadResponse.readableStreamBody) {
-          chunks.push(Buffer.from(chunk));
-        }
-      }
-      
-      const content = Buffer.concat(chunks).toString('utf-8');
-      return JSON.parse(content) as Annotation;
+      return this.downloadBlobAsJson<Annotation>(legacyBlobClient);
     }
 
-    const downloadResponse = await blobClient.download();
-    const chunks: Buffer[] = [];
-    
-    if (downloadResponse.readableStreamBody) {
-      for await (const chunk of downloadResponse.readableStreamBody) {
-        chunks.push(Buffer.from(chunk));
-      }
-    }
-    
-    const content = Buffer.concat(chunks).toString('utf-8');
-    return JSON.parse(content) as Annotation;
+    return this.downloadBlobAsJson<Annotation>(blobClient);
   }
 
   /**
    * List all annotations for a sample across all users
    * Searches through user subdirectories for annotations matching the sample ID
-   * Note: Azure Blob Storage doesn't support wildcard patterns like annotations/*\/sampleId.json,
+   * Note: Azure Blob Storage doesn't support wildcard patterns such as annotations/*\/sampleId.json,
    * so we must list all blobs and filter by pattern
    */
   async listAnnotationsForSample(sampleId: string): Promise<Annotation[]> {
     if (!this.containerClient || !this.config) {
       throw new Error('Storage service not initialized');
     }
+
+    // Validate input to prevent empty string issues
+    const sanitizedSampleId = this.sanitizePath(sampleId);
 
     const annotations: Annotation[] = [];
     const prefix = `${this.config.azureStorage.annotationsPath}/`;
@@ -167,22 +191,19 @@ export class AzureStorageService {
       // New structure: annotations/{userId}/{sampleId}.json
       // Legacy structure: annotations/{sampleId}_{userId}.json
       const blobName = blob.name.replace(prefix, '');
-      const isNewStructure = blobName.includes('/') && blobName.endsWith(`/${sampleId}.json`);
-      const isLegacyStructure = blobName.startsWith(`${sampleId}_`) && blobName.endsWith('.json');
+      
+      // Validate new structure has exactly 2 path segments
+      const pathSegments = blobName.split('/');
+      const isNewStructure =
+        pathSegments.length === 2 &&
+        pathSegments[0] && pathSegments[0].length > 0 &&
+        pathSegments[1] === `${sanitizedSampleId}.json`;
+      const isLegacyStructure = blobName.startsWith(`${sanitizedSampleId}_`) && blobName.endsWith('.json');
       
       if (isNewStructure || isLegacyStructure) {
         const blobClient = this.containerClient.getBlobClient(blob.name);
-        const downloadResponse = await blobClient.download();
-        const chunks: Buffer[] = [];
-        
-        if (downloadResponse.readableStreamBody) {
-          for await (const chunk of downloadResponse.readableStreamBody) {
-            chunks.push(Buffer.from(chunk));
-          }
-        }
-        
-        const content = Buffer.concat(chunks).toString('utf-8');
-        annotations.push(JSON.parse(content) as Annotation);
+        const annotation = await this.downloadBlobAsJson<Annotation>(blobClient);
+        annotations.push(annotation);
       }
     }
 
@@ -208,10 +229,10 @@ export class AzureStorageService {
       for await (const blob of this.containerClient.listBlobsFlat({ prefix })) {
         const fileName = blob.name.replace(prefix, '');
         
-        // New structure: {userId}/{sampleId}.json
+        // New structure: {userId}/{sampleId}.json - validate exactly 2 segments
         if (fileName.includes('/')) {
           const parts = fileName.split('/');
-          if (parts.length >= 2 && parts[1]) {
+          if (parts.length === 2 && parts[1] && parts[1].endsWith('.json')) {
             const sampleId = parts[1].replace('.json', '');
             if (sampleId && sampleId !== '') {
               annotatedIds.add(sampleId);
@@ -243,15 +264,20 @@ export class AzureStorageService {
       return annotatedIds;
     }
 
+    // Validate and sanitize userId to prevent path traversal
+    const sanitizedUserId = this.sanitizePath(userId);
+
     // Search in user-specific subdirectory first (new structure)
-    const userPrefix = `${this.config.azureStorage.annotationsPath}/${userId}/`;
+    const userPrefix = `${this.config.azureStorage.annotationsPath}/${sanitizedUserId}/`;
     
     for await (const blob of this.containerClient.listBlobsFlat({ prefix: userPrefix })) {
       const fileName = blob.name.replace(userPrefix, '');
-      // New structure: annotations/{userId}/{sampleId}.json
-      const sampleId = fileName.replace('.json', '');
-      if (sampleId && sampleId !== '') {
-        annotatedIds.add(sampleId);
+      // New structure: annotations/{userId}/{sampleId}.json - filter by .json extension
+      if (fileName.endsWith('.json')) {
+        const sampleId = fileName.replace('.json', '');
+        if (sampleId && sampleId !== '') {
+          annotatedIds.add(sampleId);
+        }
       }
     }
 
@@ -269,7 +295,7 @@ export class AzureStorageService {
       if (parts.length >= 2) {
         const sampleId = parts.slice(0, -1).join('_'); // Handle sample IDs with underscores
         const annotationUserId = parts[parts.length - 1];
-        if (annotationUserId === userId) {
+        if (annotationUserId === sanitizedUserId) {
           annotatedIds.add(sampleId);
         }
       }
