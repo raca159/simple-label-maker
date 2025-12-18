@@ -8,15 +8,6 @@
     "dataPath": "ecg-samples",
     "annotationsPath": "annotations"
   },
-  "authentication": {
-    "azureB2C": {
-      "tenantId": "your-tenant-id",
-      "clientId": "your-client-id",
-      "authority": "https://your-tenant.b2clogin.com/your-tenant.onmicrosoft.com/B2C_1_signupsignin",
-      "redirectUri": "http://localhost:3000/auth/callback",
-      "scopes": ["openid", "profile", "email"]
-    }
-  },
   "sampleControl": {
     "disableSkip": false,
     "disablePrevious": false,
