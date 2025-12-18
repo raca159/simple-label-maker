@@ -4,6 +4,7 @@ export interface SampleControlConfig {
   disablePrevious?: boolean;
   disableNext?: boolean;
   filterAnnotatedSamples?: boolean;
+  requireSubmitToNavigate?: boolean;
 }
 
 // Configuration types

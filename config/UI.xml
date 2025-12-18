@@ -46,7 +46,7 @@
     </Label>
   </Labels>
   
-  <SampleControl disableSkip="true" disablePrevious="true" disableNext="true" filterAnnotatedSamples="false" />
+  <SampleControl disableSkip="false" disablePrevious="true" disableNext="false" filterAnnotatedSamples="false" requireSubmitToNavigate="true" />
   
   <Layout columns="1" showProgress="true" showInstructions="true" spacing="compact" />
 </LabelingInterface>

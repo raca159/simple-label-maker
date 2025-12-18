@@ -66,6 +66,7 @@ interface ParsedXML {
         disablePrevious?: string;
         disableNext?: string;
         filterAnnotatedSamples?: string;
+        requireSubmitToNavigate?: string;
       };
     }>;
   };
@@ -281,7 +282,7 @@ export class UISchemaParser {
     };
   }
 
-  private parseSampleControl(sampleControlArray?: Array<{ $?: { disableSkip?: string; disablePrevious?: string; disableNext?: string; filterAnnotatedSamples?: string } }>): SampleControlConfig | undefined {
+  private parseSampleControl(sampleControlArray?: Array<{ $?: { disableSkip?: string; disablePrevious?: string; disableNext?: string; filterAnnotatedSamples?: string; requireSubmitToNavigate?: string } }>): SampleControlConfig | undefined {
     const sampleControl = sampleControlArray?.[0];
     if (!sampleControl?.$) return undefined;
 
@@ -289,7 +290,8 @@ export class UISchemaParser {
       disableSkip: sampleControl.$.disableSkip === 'true',
       disablePrevious: sampleControl.$.disablePrevious === 'true',
       disableNext: sampleControl.$.disableNext === 'true',
-      filterAnnotatedSamples: sampleControl.$.filterAnnotatedSamples === 'true'
+      filterAnnotatedSamples: sampleControl.$.filterAnnotatedSamples === 'true',
+      requireSubmitToNavigate: sampleControl.$.requireSubmitToNavigate === 'true'
     };
   }
 
