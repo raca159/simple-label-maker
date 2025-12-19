@@ -33,24 +33,37 @@ export class ConfigService {
     // Check if sampleTask is configured and not null
     if (this.config.sampleTask && this.config.sampleTask.fileName) {
       try {
-        // Resolve the task file path relative to the config directory
-        const taskFilePath = path.isAbsolute(this.config.sampleTask.fileName)
-          ? this.config.sampleTask.fileName
-          : path.join(this.configDir, this.config.sampleTask.fileName);
+        let taskFileContent: string;
+        const fileName = this.config.sampleTask.fileName;
 
-        // Load the task file asynchronously
-        const taskFileContent = await fs.promises.readFile(taskFilePath, 'utf-8');
+        // Check if fileName is a URL
+        if (fileName.startsWith('http://') || fileName.startsWith('https://')) {
+          // Fetch from URL
+          const response = await fetch(fileName);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch task file from URL: ${response.status} ${response.statusText}`);
+          }
+          taskFileContent = await response.text();
+        } else {
+          // Handle as local file path
+          const taskFilePath = path.isAbsolute(fileName)
+            ? fileName
+            : path.join(this.configDir, fileName);
+
+          // Load the task file asynchronously
+          taskFileContent = await fs.promises.readFile(taskFilePath, 'utf-8');
+        }
+
         let samples: SampleInfo[];
-        
         try {
           samples = JSON.parse(taskFileContent) as SampleInfo[];
         } catch (parseError) {
-          throw new Error(`Failed to parse JSON in task file '${taskFilePath}': ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+          throw new Error(`Failed to parse JSON in task file '${fileName}': ${parseError instanceof Error ? parseError.message : String(parseError)}`);
         }
 
         // Validate that the task file contains an array of samples
         if (!Array.isArray(samples)) {
-          throw new Error(`Task file '${taskFilePath}' must contain an array of samples`);
+          throw new Error(`Task file '${fileName}' must contain an array of samples`);
         }
 
         // Validate structure of each sample and ensure unique IDs
@@ -58,33 +71,33 @@ export class ConfigService {
         samples.forEach((sample, index) => {
           if (sample == null || typeof sample !== 'object') {
             throw new Error(
-              `Sample at index ${index} in task file '${taskFilePath}' must be a non-null object`
+              `Sample at index ${index} in task file '${fileName}' must be a non-null object`
             );
           }
 
-          const { id, fileName, type } = sample as SampleInfo;
+          const { id, fileName: sampleFileName, type } = sample as SampleInfo;
 
           if (typeof id !== 'string' || id.trim() === '') {
             throw new Error(
-              `Sample at index ${index} in task file '${taskFilePath}' must have a non-empty 'id' string property`
+              `Sample at index ${index} in task file '${fileName}' must have a non-empty 'id' string property`
             );
           }
 
-          if (typeof fileName !== 'string' || fileName.trim() === '') {
+          if (typeof sampleFileName !== 'string' || sampleFileName.trim() === '') {
             throw new Error(
-              `Sample '${id}' in task file '${taskFilePath}' must have a non-empty 'fileName' string property`
+              `Sample '${id}' in task file '${fileName}' must have a non-empty 'fileName' string property`
             );
           }
 
           if (typeof type !== 'string' || type.trim() === '') {
             throw new Error(
-              `Sample '${id}' in task file '${taskFilePath}' must have a non-empty 'type' string property`
+              `Sample '${id}' in task file '${fileName}' must have a non-empty 'type' string property`
             );
           }
 
           if (seenIds.has(id)) {
             throw new Error(
-              `Duplicate sample id '${id}' found in task file '${taskFilePath}'`
+              `Duplicate sample id '${id}' found in task file '${fileName}'`
             );
           }
 
@@ -94,7 +107,7 @@ export class ConfigService {
         // Replace the samples array with the loaded samples
         this.config.samples = samples;
 
-        console.log(`Loaded ${samples.length} samples from task file: ${taskFilePath}`);
+        console.log(`Loaded ${samples.length} samples from task file: ${fileName}`);
       } catch (error) {
         console.error('Failed to load samples from task file:', error);
         throw new Error(`Failed to load samples from task file: ${error instanceof Error ? error.message : String(error)}`);

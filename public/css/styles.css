@@ -783,76 +783,49 @@ body {
 
 .series-options-inline {
   display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
-.series-option-btn {
+.series-option {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.125rem;
-  padding: 0.2rem 0.25rem;
-  border-radius: var(--radius-sm);
-  border: 2px solid transparent;
+  gap: 0.5rem;
   cursor: pointer;
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: white;
+}
+
+.series-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary-600);
+  /* Fallback for older browsers */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 2px solid var(--slate-300);
+  border-radius: 50%;
+  background-color: white;
   transition: all var(--transition-fast);
-  user-select: none;
-  min-height: 20px;
-  white-space: normal;
-  word-break: break-word;
-  background-color: var(--slate-600) !important;
-  width: 100%;
 }
 
-/* Button size variants */
-.series-option-btn.btn-small {
-  padding: 0.15rem 0.2rem;
-  font-size: 0.55rem;
-  min-height: 18px;
+.series-option input[type="radio"]:checked {
+  border-color: var(--primary-600);
+  background-color: var(--primary-600);
+  box-shadow: inset 0 0 0 3px white;
 }
 
-.series-option-btn.btn-medium {
-  padding: 0.2rem 0.25rem;
-  font-size: 0.6rem;
-  min-height: 20px;
+.series-option input[type="radio"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-100);
 }
 
-.series-option-btn.btn-large {
-  padding: 0.25rem 0.3rem;
-  font-size: 0.65rem;
-  min-height: 22px;
-}
-
-.series-option-btn:hover {
-  opacity: 0.75;
-  background-color: var(--slate-700) !important;
-}
-
-.series-option-btn input[type="radio"] {
-  margin: 0;
-  margin-right: 0.1rem;
-  cursor: pointer;
-  width: 11px;
-  height: 11px;
-  accent-color: white;
-  flex-shrink: 0;
-}
-
-.series-option-btn input[type="radio"]:checked + span {
-  font-weight: 700;
-}
-
-.series-option-btn span {
-  flex: 1;
-  min-width: 0;
-  word-break: break-word;
-  text-align: left;
-  display: inline;
+.series-option-label {
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: white;
 }
 
 .series-controls-section {

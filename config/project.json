@@ -1,46 +1,15 @@
 {
-  "projectId": "ecg-classification",
-  "projectName": "ECG Multi-Timeseries Classification",
-  "description": "Classify ECG time series recordings. Each sample contains multiple leads. Label each lead as AF, Noise, or None, then provide a global sample classification.",
+  "projectId": "af-classification",
+  "projectName": "AF Detection",
+  "description": "Classify AF from time-series CSV data.",
   "azureStorage": {
-    "accountName": "your-storage-account",
-    "containerName": "ecg-labeling",
-    "dataPath": "ecg-samples",
-    "annotationsPath": "annotations"
+    "accountName": "accountName",
+    "containerName": "containerName",
+    "dataPath": "dataPath",
+    "annotationsPath": "annotationsPath"
   },
-  "sampleControl": {
-    "disableSkip": false,
-    "disablePrevious": false,
-    "disableNext": false,
-    "filterAnnotatedSamples": false
+  "sampleTask": {
+    "fileName": "https://accountName.blob.core.windows.net/containerName/task_0.new.json"
   },
-  "samples": [
-    {
-      "id": "ecg-001",
-      "fileName": "ecg_recording_001.json",
-      "type": "time-series",
-      "metadata": {
-        "source": "ecg-dataset",
-        "patient": "P001"
-      }
-    },
-    {
-      "id": "ecg-002",
-      "fileName": "ecg_recording_002.json",
-      "type": "time-series",
-      "metadata": {
-        "source": "ecg-dataset",
-        "patient": "P002"
-      }
-    },
-    {
-      "id": "ecg-003",
-      "fileName": "ecg_recording_003.json",
-      "type": "time-series",
-      "metadata": {
-        "source": "ecg-dataset",
-        "patient": "P003"
-      }
-    }
-  ]
+  "samples": []
 }

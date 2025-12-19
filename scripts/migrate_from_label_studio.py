@@ -155,7 +155,7 @@ def main():
     tasks = load_label_studio_tasks(args.task)
     print(f"Loaded {len(tasks)} tasks")
     
-    print(f"Parsing metadata...")
+    print("Parsing metadata...")
     metadata = parse_metadata(args.metadata)
     
     print(f"Converting tasks to samples (type: {args.type})...")
@@ -169,10 +169,10 @@ def main():
     save_samples(samples, args.output)
     
     print("\nConversion complete!")
-    print(f"\nTo use these samples, update your project.json:")
-    print(f'  "sampleTask": {{')
+    print("\nTo use these samples, update your project.json:")
+    print('  "sampleTask": {{')
     print(f'    "fileName": "{args.output}"')
-    print(f'  }}')
+    print('  }}')
 
 
 if __name__ == '__main__':

@@ -1,12 +1,50 @@
 // Simple Label Maker - Frontend Application
 
-// Register custom Chart.js plugin for crosshair
+// Register custom Chart.js plugin for vertical grid lines
+if (typeof Chart !== 'undefined') {
+  Chart.register({
+    id: 'verticalGridLines',
+    afterDatasetsDraw(chart) {
+      if (!chart.scales.x || !chart.chartArea) return;
+      
+      const ctx = chart.ctx;
+      const xScale = chart.scales.x;
+      const chartArea = chart.chartArea;
+      
+      ctx.save();
+      ctx.strokeStyle = 'rgba(203, 213, 225, 0.8)';
+      ctx.lineWidth = 1.5;
+      
+      // Draw vertical lines at major tick intervals only
+      if (chart.data.datasets && chart.data.datasets[0]) {
+        const dataLength = chart.data.datasets[0].data.length;
+        // Calculate interval to show about 5-10 vertical grid lines
+        const interval = Math.max(1, Math.ceil(dataLength / 10));
+        
+        for (let i = 0; i < dataLength; i += interval) {
+          const x = xScale.getPixelForValue(i);
+          if (x >= chartArea.left && x <= chartArea.right) {
+            ctx.beginPath();
+            ctx.moveTo(x, chartArea.top);
+            ctx.lineTo(x, chartArea.bottom);
+            ctx.stroke();
+          }
+        }
+      }
+      
+      ctx.restore();
+    }
+  });
+}
+
+// Register custom Chart.js plugin for crosshair with value display
 if (typeof Chart !== 'undefined') {
   Chart.register({
     id: 'crosshair',
     afterDatasetsDraw(chart) {
       const canvas = chart.canvas;
       const hoverX = canvas.dataset.hoverX;
+      const hoverValue = canvas.dataset.hoverValue;
       
       if (!hoverX || !chart.chartArea) return;
       
@@ -15,9 +53,8 @@ if (typeof Chart !== 'undefined') {
       
       // Save state and draw on top of everything
       ctx.save();
-      ctx.strokeStyle = 'rgba(79, 70, 229, 0.5)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = 'rgba(79, 70, 229, 0.8)';
+      ctx.lineWidth = 2;
       
       const x = parseFloat(hoverX);
       if (x >= chartArea.left && x <= chartArea.right) {
@@ -25,6 +62,40 @@ if (typeof Chart !== 'undefined') {
         ctx.moveTo(x, chartArea.top);
         ctx.lineTo(x, chartArea.bottom);
         ctx.stroke();
+        
+        // Draw value label if available
+        if (hoverValue !== undefined) {
+          const value = parseFloat(hoverValue);
+          const yScale = chart.scales.y;
+          const yPixel = yScale.getPixelForValue(value);
+          
+          if (yPixel >= chartArea.top && yPixel <= chartArea.bottom) {
+            // Draw a small dot at the intersection
+            ctx.fillStyle = 'rgba(79, 70, 229, 0.9)';
+            ctx.beginPath();
+            ctx.arc(x, yPixel, 3, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw value text next to the line
+            ctx.fillStyle = 'rgba(79, 70, 229, 0.95)';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            const valueText = value.toFixed(3);
+            const textX = x + 8;
+            const textY = yPixel - 2;
+            
+            // Background for text
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.fillRect(textX - 2, textY - 10, 40, 14);
+            ctx.strokeStyle = 'rgba(79, 70, 229, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(textX - 2, textY - 10, 40, 14);
+            
+            // Value text
+            ctx.fillStyle = 'rgba(79, 70, 229, 0.95)';
+            ctx.fillText(valueText, textX, textY);
+          }
+        }
       }
       
       ctx.restore();
@@ -795,7 +866,6 @@ class LabelMaker {
       radioLabel.innerHTML = `
         <input type="radio" name="global-${label.name}" value="${opt.value}" />
         <span class="global-option-label" style="background-color: ${opt.color || '#ddd'}">${opt.label}</span>
-        ${opt.hotkey ? `<span class="choice-hotkey">${opt.hotkey}</span>` : ''}
       `;
       globalOptionsContainer.appendChild(radioLabel);
     });
@@ -839,28 +909,11 @@ class LabelMaker {
       
       seriesOptions.filter(opt => !opt.hidden).forEach(opt => {
         const optLabel = document.createElement('label');
-        optLabel.className = 'series-option-btn';
-        if (label.buttonSize === 'small') {
-          optLabel.classList.add('btn-small');
-        } else if (label.buttonSize === 'large') {
-          optLabel.classList.add('btn-large');
-        } else {
-          optLabel.classList.add('btn-medium');
-        }
-        optLabel.style.backgroundColor = opt.color || '#ddd';
-        optLabel.title = opt.label;
-        
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = `series-${i}`;
-        radio.value = opt.value;
-        radio.dataset.seriesIndex = i;
-        
-        const text = document.createElement('span');
-        text.textContent = opt.label;
-        
-        optLabel.appendChild(radio);
-        optLabel.appendChild(text);
+        optLabel.className = 'series-option';
+        optLabel.innerHTML = `
+          <input type="radio" name="series-${i}" value="${opt.value}" data-series-index="${i}" />
+          <span class="series-option-label" style="background-color: ${opt.color || '#ddd'}">${opt.label}</span>
+        `;
         optionsContainer.appendChild(optLabel);
       });
       
@@ -980,11 +1033,11 @@ class LabelMaker {
             },
             grid: {
               display: true,
-              color: 'rgba(203, 213, 225, 0.5)',
+              color: 'rgba(203, 213, 225, 0.8)',
               drawBorder: false,
               drawOnChartArea: true,
               drawTicks: true,
-              lineWidth: 1.2
+              lineWidth: 1.5
             }
           },
           y: {
@@ -1022,9 +1075,22 @@ class LabelMaker {
       const x = e.clientX - rect.left;
       const chartArea = chart.chartArea;
       
-      // Update all charts to show the vertical line
+      // Calculate the data index based on hover position
+      let dataIndex = null;
+      if (x >= chartArea.left && x <= chartArea.right) {
+        const relativeX = (x - chartArea.left) / (chartArea.right - chartArea.left);
+        dataIndex = Math.round(relativeX * (data.length - 1));
+      }
+      
+      // Update all charts to show the vertical line and values
       this.timeSeriesCharts.forEach(c => {
         c.canvas.dataset.hoverX = x;
+        // Get the value from this chart's data at the calculated index
+        if (dataIndex !== null && c.data.datasets[0] && c.data.datasets[0].data[dataIndex] !== undefined) {
+          c.canvas.dataset.hoverValue = c.data.datasets[0].data[dataIndex];
+        } else {
+          delete c.canvas.dataset.hoverValue;
+        }
         c.draw();
       });
     });
@@ -1033,6 +1099,7 @@ class LabelMaker {
       if (isDataPanel) return;
       this.timeSeriesCharts.forEach(c => {
         delete c.canvas.dataset.hoverX;
+        delete c.canvas.dataset.hoverValue;
         c.draw();
       });
     });
@@ -1452,6 +1519,25 @@ class LabelMaker {
       const btn = document.getElementById('toggleInstructions');
       content.classList.toggle('collapsed');
       btn.textContent = content.classList.contains('collapsed') ? '+' : '−';
+    });
+
+    // Add untoggle behavior to radio buttons (series and global options)
+    document.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT' && e.target.type === 'radio') {
+        const radio = e.target;
+        const wasChecked = radio.dataset.wasChecked === 'true';
+        
+        // Track the checked state for next click
+        setTimeout(() => {
+          radio.dataset.wasChecked = radio.checked;
+        }, 0);
+        
+        // If it was already checked, uncheck it
+        if (wasChecked && radio.checked) {
+          radio.checked = false;
+          radio.dataset.wasChecked = 'false';
+        }
+      }
     });
 
     // Keyboard shortcuts
