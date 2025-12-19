@@ -157,7 +157,7 @@ simple-label-maker/
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `PORT` | Server port (default: 3000) | No |
-| `AZURE_STORAGE_CONNECTION_STRING` | Azure Blob Storage connection string | For Azure mode |
+| `STORAGE_CONN_STR` | Azure Blob Storage connection string | For Azure mode |
 | `CONFIG_PATH` | Custom path to project.json | No |
 | `UI_XML_PATH` | Custom path to UI.xml | No |
 
@@ -386,7 +386,7 @@ python3 scripts/migrate_from_label_studio.py \
    ```
 
 3. **Azure Storage connection issues**
-   - Verify `AZURE_STORAGE_CONNECTION_STRING` is set
+   - Verify `STORAGE_CONN_STR` is set
    - Check network connectivity to Azure
    - Ensure container exists and has correct permissions
 

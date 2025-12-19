@@ -374,7 +374,7 @@ Example configuration:
 4. Set the connection string as an environment variable:
 
 ```bash
-export AZURE_STORAGE_CONNECTION_STRING="your-connection-string"
+export STORAGE_CONN_STR="your-connection-string"
 ```
 
 ### Annotation Syncing to Azure
@@ -421,7 +421,7 @@ Example annotation structure:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `PORT` | Server port (default: 3000) | No |
-| `AZURE_STORAGE_CONNECTION_STRING` | Azure Blob Storage connection string | For Azure mode |
+| `STORAGE_CONN_STR` | Azure Blob Storage connection string | For Azure mode |
 | `CONFIG_PATH` | Custom path to project.json | No |
 | `UI_XML_PATH` | Custom path to UI.xml | No |
 

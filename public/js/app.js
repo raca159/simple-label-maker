@@ -127,6 +127,9 @@ class LabelMaker {
 
   async init() {
     try {
+      // Load user info
+      await this.loadUserInfo();
+      
       // Load project info first to get sample control settings
       await this.loadProjectInfo();
       
@@ -150,12 +153,44 @@ class LabelMaker {
       // Initialize help modal if configured
       this.initializeHelpModal();
 
-      // Get current sample from URL or load first sample
+      // Get current sample from URL or resume from where user left off
       const pathMatch = window.location.pathname.match(/\/label\/(.+)/);
       if (pathMatch) {
+        // User has explicit sample in URL, load that
+        console.log('📍 [INIT] URL path found, loading sample from URL:', pathMatch[1]);
+        
+        // Always fetch resume position to get current progress count
+        const resumePosition = await this.getResumePosition();
+        if (resumePosition && resumePosition.annotatedCount !== undefined) {
+          this.serverAnnotatedCount = resumePosition.annotatedCount;
+          console.log('📊 [INIT] Set progress from resume position:', resumePosition.annotatedCount, '/', resumePosition.totalSamples);
+        }
+        
         await this.loadSample(pathMatch[1]);
       } else if (this.samples.length > 0) {
-        await this.loadSample(this.samples[0].id);
+        // Try to resume from where user left off
+        console.log('🔄 [INIT] No URL path, checking resume position...');
+        const resumePosition = await this.getResumePosition();
+        
+        console.log('📊 [INIT] Resume position response:', resumePosition);
+        
+        if (resumePosition && resumePosition.nextSampleId) {
+          // User has completed some samples, resume from the next one
+          console.log('✅ [INIT] Resuming from sample:', resumePosition.nextSampleId, 'Progress:', resumePosition.annotatedCount, '/', resumePosition.totalSamples);
+          await this.loadSample(resumePosition.nextSampleId);
+          // Update local annotation count from server for accurate progress display
+          if (resumePosition.annotatedCount !== undefined) {
+            this.serverAnnotatedCount = resumePosition.annotatedCount;
+          }
+        } else if (resumePosition && resumePosition.allCompleted) {
+          // All samples have been completed
+          console.log('🎉 [INIT] All samples completed');
+          this.showCompletionMessage();
+        } else {
+          // No resume data available, start from first sample
+          console.log('▶️ [INIT] Starting from first sample');
+          await this.loadSample(this.samples[0].id);
+        }
       } else {
         // No samples available (all annotated)
         this.showCompletionMessage();
@@ -164,6 +199,26 @@ class LabelMaker {
     } catch (error) {
       console.error('Failed to initialize:', error);
       this.showToast('Failed to initialize application', 'error');
+    }
+  }
+
+  async loadUserInfo() {
+    try {
+      const response = await fetch('/api/me');
+      if (response.ok) {
+        const user = await response.json();
+        // Update the user button with the user's name or email
+        const userBtn = document.getElementById('userBtn');
+        if (userBtn && user.name) {
+          userBtn.textContent = user.name;
+          userBtn.title = user.email || user.userId;
+        } else if (userBtn && user.email) {
+          userBtn.textContent = user.email;
+          userBtn.title = user.userId;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load user info:', error);
     }
   }
 
@@ -197,6 +252,27 @@ class LabelMaker {
     
     // Inject custom styles if provided in UI.xml
     this.applyCustomStyles();
+  }
+
+  async getResumePosition(currentSampleId = null) {
+    try {
+      const url = currentSampleId 
+        ? `/api/resume-position?currentSampleId=${encodeURIComponent(currentSampleId)}`
+        : '/api/resume-position';
+      console.log('🔍 [API] Calling', url);
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ [API] Resume position response:', data);
+        return data;
+      } else {
+        console.warn('⚠️  [API] Resume position returned status:', response.status);
+        return null;
+      }
+    } catch (error) {
+      console.warn('❌ [API] Failed to get resume position:', error);
+      return null;
+    }
   }
 
   applyCustomStyles() {
@@ -508,6 +584,23 @@ class LabelMaker {
     const allResponse = await fetch('/api/samples');
     this.allSamples = await allResponse.json();
     
+    // Always get the true total count from server via resume position
+    try {
+      const resumePosition = await this.getResumePosition();
+      if (resumePosition && resumePosition.totalSamples !== undefined) {
+        this.totalSamples = resumePosition.totalSamples;
+        console.log('📊 [LOAD SAMPLES] Set total samples:', this.totalSamples);
+      }
+      if (resumePosition && resumePosition.annotatedCount !== undefined) {
+        this.serverAnnotatedCount = resumePosition.annotatedCount;
+        console.log('📊 [LOAD SAMPLES] Set annotated count:', this.serverAnnotatedCount);
+      }
+    } catch (error) {
+      console.warn('⚠️  [LOAD SAMPLES] Failed to get counts from server:', error);
+      // Fallback: use local samples count
+      this.totalSamples = this.allSamples.length;
+    }
+    
     // If filtering is enabled, use the filtered endpoint
     if (this.sampleControl.filterAnnotatedSamples) {
       const response = await fetch('/api/samples/filtered');
@@ -523,13 +616,7 @@ class LabelMaker {
       } else {
         // Azure mode: Server provides pre-filtered samples based on blob storage
         this.samples = data.samples;
-        // Track the server-reported annotated count for progress display
-        if (data.annotatedCount !== undefined) {
-          this.serverAnnotatedCount = data.annotatedCount;
-        }
       }
-      
-      this.totalSamples = data.totalSamples;
     } else {
       this.samples = this.allSamples;
     }
@@ -632,6 +719,9 @@ class LabelMaker {
       
       // Update navigation
       await this.updateNavigation();
+      
+      // Update progress display
+      this.updateProgress();
       
     } catch (error) {
       console.error('Failed to load sample:', error);
@@ -1258,6 +1348,12 @@ class LabelMaker {
         this.saveAnnotationLocally(this.currentSampleId, labels);
         this.showToast('Annotation submitted successfully!', 'success');
         
+        // Increment server annotated count for progress display
+        if (this.serverAnnotatedCount !== undefined) {
+          this.serverAnnotatedCount++;
+          console.log('📊 [SUBMIT] Updated progress:', this.serverAnnotatedCount, '/', this.totalSamples);
+        }
+        
         // Update navigation state (includes submission requirement and nav availability)
         await this.updateNavigation();
         
@@ -1276,16 +1372,28 @@ class LabelMaker {
           // All samples completed
           this.showCompletionMessage();
         } else {
-          // Move to next sample - use navigation based on current list state
-          const navInfo = await this.getNavigationInfo();
-          if (navInfo.hasNext && navInfo.nextId) {
-            this.loadSample(navInfo.nextId);
-          } else if (this.samples.length > 0 && this.sampleControl.filterAnnotatedSamples) {
-            // Load first remaining sample (after filtering, current sample is removed)
-            this.loadSample(this.samples[0].id);
+          // Move to next sample
+          // Always use server-side resume position after submission to get the most up-to-date
+          // information about which samples are annotated (the server just saved our annotation)
+          console.log('🔄 [SUBMIT] Fetching next unannotated sample after:', submittedSampleId);
+          const resumePosition = await this.getResumePosition(submittedSampleId);
+          console.log('🔄 [SUBMIT] Resume position response:', resumePosition);
+          
+          let nextSampleId = null;
+          if (resumePosition && resumePosition.nextSampleId) {
+            nextSampleId = resumePosition.nextSampleId;
+            console.log('🔄 [SUBMIT] Next unannotated sample:', nextSampleId);
           } else {
-            // No next sample in non-filtered mode - stay on current sample
-            this.showToast('No more samples to annotate.', 'info');
+            console.log('⚠️  [SUBMIT] No next sample found in resume position');
+          }
+          
+          if (nextSampleId) {
+            console.log('📍 [SUBMIT] Loading next sample:', nextSampleId);
+            this.loadSample(nextSampleId);
+          } else {
+            // No more samples to annotate
+            this.showToast('All samples completed!', 'success');
+            this.showCompletionMessage();
           }
         }
       } else {
@@ -1484,19 +1592,14 @@ class LabelMaker {
   updateProgress() {
     const annotatedCount = this.getAnnotatedCount();
     
-    // When filtering is enabled, show progress as "annotated / total" with remaining in the filtered list
-    if (this.sampleControl.filterAnnotatedSamples) {
-      // Show how many samples have been annotated out of the total project samples
-      const percentage = this.totalSamples > 0 ? (annotatedCount / this.totalSamples) * 100 : 0;
-      document.getElementById('progressText').textContent = `${annotatedCount} / ${this.totalSamples}`;
-      document.getElementById('progressFill').style.width = `${percentage}%`;
-    } else {
-      // Standard progress: show based on samples list
-      const totalSamples = this.samples.length;
-      const percentage = totalSamples > 0 ? (annotatedCount / totalSamples) * 100 : 0;
-      document.getElementById('progressText').textContent = `${annotatedCount} / ${totalSamples}`;
-      document.getElementById('progressFill').style.width = `${percentage}%`;
-    }
+    // Use server-reported total if available, otherwise fallback to samples list length
+    const totalSamples = this.totalSamples || this.samples.length;
+    const percentage = totalSamples > 0 ? (annotatedCount / totalSamples) * 100 : 0;
+    
+    document.getElementById('progressText').textContent = `${annotatedCount} / ${totalSamples}`;
+    document.getElementById('progressFill').style.width = `${percentage}%`;
+    
+    console.log('📊 [PROGRESS] Updated to:', annotatedCount, '/', totalSamples, '(%' + percentage.toFixed(1) + ')');
   }
 
   setupEventListeners() {

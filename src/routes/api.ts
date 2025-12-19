@@ -16,6 +16,30 @@ interface AuthenticatedRequest extends Request {
 
 const router = Router();
 
+// Get current user information (for debugging authentication)
+router.get('/me', (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const user = authReq.user || {
+      userId: 'demo-user',
+      name: 'Demo User',
+      email: 'demo@example.com',
+      authenticated: false
+    };
+
+    console.log('👤 [/me ENDPOINT] User info requested:', user);
+
+    res.json({
+      ...user,
+      authenticated: !!authReq.user,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ [/me ENDPOINT] Error:', error);
+    res.status(500).json({ error: 'Failed to get user info' });
+  }
+});
+
 // Get project information
 router.get('/project', (req: Request, res: Response) => {
   try {
@@ -74,7 +98,7 @@ router.get('/samples/filtered', async (req: Request, res: Response) => {
     const userId = authReq.user?.userId ?? authReq.user?.azureObjectId ?? 'demo-user';
     
     // For demo mode without Azure, check localStorage on frontend instead
-    if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
+    if (!process.env.STORAGE_CONN_STR) {
       res.json({
         samples: config.samples,
         totalSamples: config.samples.length,
@@ -102,6 +126,92 @@ router.get('/samples/filtered', async (req: Request, res: Response) => {
   }
 });
 
+// Get resume position for current user (next sample to label)
+// Returns annotated count, total samples, and next sample ID to resume from
+// Query param: currentSampleId - if provided, finds next unannotated sample AFTER this one
+router.get('/resume-position', async (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const config = configService.getConfig();
+    const sampleControl = configService.getSampleControlConfig();
+    
+    const userId = authReq.user?.userId ?? authReq.user?.azureObjectId ?? 'demo-user';
+    const totalSamples = config.samples.length;
+    const currentSampleId = req.query.currentSampleId as string | undefined;
+    
+    console.log('🔄 [RESUME] User ID:', userId);
+    console.log('🔄 [RESUME] Total samples:', totalSamples);
+    console.log('🔄 [RESUME] Current sample ID:', currentSampleId || 'none (fresh start)');
+    console.log('🔄 [RESUME] Sample IDs in config:', config.samples.map(s => s.id).slice(0, 10));
+    console.log('🔄 [RESUME] STORAGE_CONN_STR set:', !!process.env.STORAGE_CONN_STR);
+    
+    // For demo mode without Azure, no resume support
+    if (!process.env.STORAGE_CONN_STR) {
+      console.log('⚠️  [RESUME] No Azure storage configured, resume not supported');
+      res.json({
+        annotatedCount: 0,
+        totalSamples: totalSamples,
+        nextSampleId: config.samples.length > 0 ? config.samples[0].id : null,
+        nextSampleIndex: 0,
+        supportsResume: false,
+        message: 'Resume not supported in demo mode (no Azure storage)'
+      });
+      return;
+    }
+
+    // Get annotated sample IDs for this user from Azure
+    const annotatedSampleIds = await storageService.getAnnotatedSampleIdsForUser(userId);
+    const annotatedCount = annotatedSampleIds.size;
+    
+    console.log('🔄 [RESUME] Annotated count for user:', annotatedCount);
+    console.log('🔄 [RESUME] Annotated sample IDs:', Array.from(annotatedSampleIds));
+
+    // Find the next unannotated sample
+    // If currentSampleId is provided, start searching AFTER that sample
+    // Otherwise, find the first unannotated sample from the beginning
+    let nextSampleId = null;
+    let nextSampleIndex = 0;
+    let startIndex = 0;
+    
+    if (currentSampleId) {
+      // Find the index of the current sample and start after it
+      const currentIndex = config.samples.findIndex(s => s.id === currentSampleId);
+      if (currentIndex >= 0) {
+        startIndex = currentIndex + 1;
+        console.log('🔄 [RESUME] Starting search after current sample at index', currentIndex);
+      }
+    }
+
+    for (let i = startIndex; i < config.samples.length; i++) {
+      if (!annotatedSampleIds.has(config.samples[i].id)) {
+        nextSampleId = config.samples[i].id;
+        nextSampleIndex = i;
+        console.log('🔄 [RESUME] Next unannotated sample found at index', i, ':', nextSampleId);
+        break;
+      }
+    }
+    
+    if (nextSampleId === null) {
+      console.log('🔄 [RESUME] No more unannotated samples found after index', startIndex);
+    }
+
+    const response = {
+      annotatedCount: annotatedCount,
+      totalSamples: totalSamples,
+      nextSampleId: nextSampleId,
+      nextSampleIndex: nextSampleIndex,
+      supportsResume: true,
+      allCompleted: annotatedCount === totalSamples && nextSampleId === null
+    };
+    
+    console.log('🔄 [RESUME] Returning response:', response);
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [RESUME] Failed to get resume position:', error);
+    res.status(500).json({ error: 'Failed to get resume position' });
+  }
+});
+
 // Get a specific sample
 router.get('/samples/:id', (req: Request, res: Response) => {
   try {
@@ -126,7 +236,7 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
     }
     
     // For demo mode without Azure, read from local files
-    if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
+    if (!process.env.STORAGE_CONN_STR) {
       // Return sample data based on type
       if (sample.type === 'image') {
         res.json({ 
@@ -188,8 +298,9 @@ router.get('/samples/:id/data', async (req: Request, res: Response) => {
     // For Azure mode, check if it's time-series
     if (sample.type === 'time-series') {
       try {
-        const data = await storageService.getSampleData(sample);
-        const content = data.toString('utf-8');
+        // Use localFileService which handles both URLs and local paths
+        const config = configService.getConfig();
+        const content = await localFileService.getSampleData(sample, config);
         
         // Check if content is CSV or JSON
         if (sample.fileName.endsWith('.csv') || content.trim().startsWith('time,')) {
@@ -223,7 +334,7 @@ router.get('/annotations/:sampleId', async (req: Request, res: Response) => {
     const userId = authReq.user?.userId ?? authReq.user?.azureObjectId ?? 'demo-user';
     
     // Check local storage first (for demo mode)
-    if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
+    if (!process.env.STORAGE_CONN_STR) {
       // Return null for demo mode - annotations stored in browser
       res.json(null);
       return;
@@ -247,6 +358,15 @@ router.post('/annotations', async (req: Request, res: Response) => {
     const azureObjectId = authReq.user?.azureObjectId;
     const tenantId = authReq.user?.tenantId;
     
+    console.log('📝 [ANNOTATION SAVE] Incoming annotation from user:', {
+      userId,
+      userName,
+      userEmail,
+      sampleId: req.body.sampleId,
+      hasAuthUser: !!authReq.user,
+      userFullInfo: authReq.user
+    });
+    
     const annotation: Annotation = {
       id: uuidv4(),
       sampleId: req.body.sampleId,
@@ -261,15 +381,29 @@ router.post('/annotations', async (req: Request, res: Response) => {
       tenantId: tenantId
     };
 
-    // For demo mode, just return success (stored in browser localStorage)
-    if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
-      res.json({ success: true, annotation, syncedToAzure: false });
-      return;
+    // Always attempt to sync to Azure Blob Storage using project.json config
+    try {
+      await storageService.saveAnnotation(annotation);
+      console.log('✅ [ANNOTATION] Successfully persisted to Azure Blob Storage:', {
+        annotationId: annotation.id,
+        userId: annotation.userId,
+        sampleId: annotation.sampleId
+      });
+      res.json({ success: true, annotation, syncedToAzure: true });
+    } catch (azureError) {
+      // If Azure persistence fails, still return the annotation but note it's not persisted
+      console.warn('⚠️  [ANNOTATION] Failed to persist to Azure, will use browser localStorage:', {
+        annotationId: annotation.id,
+        userId: annotation.userId,
+        error: (azureError as Error).message
+      });
+      res.json({ 
+        success: true, 
+        annotation, 
+        syncedToAzure: false,
+        warning: 'Annotation saved locally but not synced to Azure. Check server logs.'
+      });
     }
-
-    // Sync annotation to Azure Blob Storage
-    await storageService.saveAnnotation(annotation);
-    res.json({ success: true, annotation, syncedToAzure: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to save annotation' });
   }
@@ -278,7 +412,7 @@ router.post('/annotations', async (req: Request, res: Response) => {
 // Get project statistics
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
+    if (!process.env.STORAGE_CONN_STR) {
       const config = configService.getConfig();
       res.json({ 
         totalSamples: config.samples.length, 
@@ -317,7 +451,7 @@ router.get('/navigation/:sampleId', (req: Request, res: Response) => {
 // Shows which users have annotated each sample
 router.get('/annotations/:sampleId/all', async (req: Request, res: Response) => {
   try {
-    if (!process.env.AZURE_STORAGE_CONNECTION_STRING) {
+    if (!process.env.STORAGE_CONN_STR) {
       res.json({ annotations: [], message: 'Azure storage not configured' });
       return;
     }

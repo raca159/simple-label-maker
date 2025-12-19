@@ -32,9 +32,10 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy public assets and config
+# Copy public assets and required config files
 COPY public/ ./public/
-COPY config/ ./config/
+COPY config/project.json ./config/
+COPY config/UI.xml ./config/
 
 # Change ownership to non-root user
 RUN chown -R labelmaker:nodejs /app

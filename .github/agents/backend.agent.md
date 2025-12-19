@@ -64,7 +64,7 @@ docker-compose up --build
 # Docker manual build and run
 docker build -t simple-label-maker .
 docker run -p 3000:3000 \
-  -e AZURE_STORAGE_CONNECTION_STRING="your-connection-string" \
+  -e STORAGE_CONN_STR="your-connection-string" \
   simple-label-maker
 
 # Check health endpoint
@@ -147,7 +147,7 @@ export class AzureStorageService {
     this.config = config;
     const { accountName, containerName } = config.azureStorage;
     
-    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+    const connectionString = process.env.STORAGE_CONN_STR;
     
     if (connectionString) {
       // Use connection string (development/testing)
@@ -382,7 +382,7 @@ services:
       - PORT=3000
       - NODE_ENV=production
       # Azure Storage (set via .env file or secrets manager)
-      # - AZURE_STORAGE_CONNECTION_STRING=...
+      # - STORAGE_CONN_STR=...
     volumes:
       - ./config:/app/config:ro
     restart: unless-stopped
@@ -431,7 +431,7 @@ services:
 |----------|-------------|----------|---------|
 | `PORT` | Server port | No | `3000` |
 | `NODE_ENV` | Environment mode | No | `production` |
-| `AZURE_STORAGE_CONNECTION_STRING` | Azure Blob connection | For Azure | `DefaultEndpoints...` |
+| `STORAGE_CONN_STR` | Azure Blob connection | For Azure | `DefaultEndpoints...` |
 | `CONFIG_PATH` | Custom project.json path | No | `/app/config/project.json` |
 | `UI_XML_PATH` | Custom UI.xml path | No | `/app/config/UI.xml` |
 
@@ -593,7 +593,7 @@ Example: `annotations/sample-001_user-abc123.json`
 ### Azure Storage Connection Issues
 ```bash
 # Verify connection string is set
-echo $AZURE_STORAGE_CONNECTION_STRING
+echo $STORAGE_CONN_STR
 
 # Test connectivity
 curl http://localhost:3000/api/stats

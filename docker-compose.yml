@@ -11,7 +11,7 @@ services:
       - PORT=3000
       - NODE_ENV=production
       # Azure Storage (optional - for production use)
-      # - AZURE_STORAGE_CONNECTION_STRING=your-connection-string
+      # - STORAGE_CONN_STR=your-connection-string
       # Custom config paths (optional)
       # - CONFIG_PATH=/app/config/project.json
       # - UI_XML_PATH=/app/config/UI.xml

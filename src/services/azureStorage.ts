@@ -1,5 +1,4 @@
-import { BlobServiceClient, ContainerClient, StorageSharedKeyCredential } from '@azure/storage-blob';
-import { DefaultAzureCredential } from '@azure/identity';
+import { BlobServiceClient, ContainerClient } from '@azure/storage-blob';
 import { Annotation, ProjectConfig, SampleInfo } from '../types';
 
 export class AzureStorageService {
@@ -58,22 +57,27 @@ export class AzureStorageService {
     this.config = config;
     
     const { accountName, containerName } = config.azureStorage;
+    const connectionString = process.env.STORAGE_CONN_STR;
     
-    // Try to use DefaultAzureCredential first (for production with managed identity)
-    // Fall back to connection string from environment
-    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+    // Use connection string from environment variable
+    if (!connectionString) {
+      console.error('❌ [AZURE STORAGE] Failed to initialize: STORAGE_CONN_STR not set');
+      console.error('   Storage account: ' + accountName);
+      throw new Error('Azure Storage initialization failed: STORAGE_CONN_STR environment variable not set');
+    }
     
-    if (connectionString) {
+    try {
+      console.log('🔐 [AZURE STORAGE] Initializing with connection string...');
       const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
       this.containerClient = blobServiceClient.getContainerClient(containerName);
-    } else {
-      // Use DefaultAzureCredential for Azure-hosted environments
-      const credential = new DefaultAzureCredential();
-      const blobServiceClient = new BlobServiceClient(
-        `https://${accountName}.blob.core.windows.net`,
-        credential
-      );
-      this.containerClient = blobServiceClient.getContainerClient(containerName);
+      
+      // Verify credentials work by getting container properties
+      await this.containerClient.getProperties();
+      console.log('✅ [AZURE STORAGE] Successfully initialized with connection string');
+    } catch (error) {
+      const errorMsg = (error as Error).message;
+      console.error(`❌ [AZURE STORAGE] Initialization failed: ${errorMsg}`);
+      throw error;
     }
   }
 
@@ -108,6 +112,12 @@ export class AzureStorageService {
       throw new Error('Storage service not initialized');
     }
 
+    // If fileName is already a full URL, return it as-is
+    if (sample.fileName.startsWith('http')) {
+      return sample.fileName;
+    }
+
+    // Otherwise, build blob path and get its URL
     const blobPath = `${this.config.azureStorage.dataPath}/${sample.fileName}`;
     const blobClient = this.containerClient.getBlobClient(blobPath);
     

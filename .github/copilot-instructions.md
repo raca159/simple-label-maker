@@ -81,7 +81,7 @@ config/                # Configuration files
 | Variable | Description |
 |----------|-------------|
 | `PORT` | Server port (default: 3000) |
-| `AZURE_STORAGE_CONNECTION_STRING` | Azure Blob Storage connection string |
+| `STORAGE_CONN_STR` | Azure Blob Storage connection string |
 | `CONFIG_PATH` | Custom path to project.json |
 | `UI_XML_PATH` | Custom path to UI.xml |
 
