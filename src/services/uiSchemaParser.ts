@@ -204,7 +204,7 @@ export class UISchemaParser {
    */
   private validateSubtitlePosition(position?: string): 'above' | 'below' {
     const validSubtitlePositions: Array<'above' | 'below'> = ['above', 'below'];
-    return position && validSubtitlePositions.includes(position as any)
+    return position && validSubtitlePositions.includes(position as 'above' | 'below')
       ? position as 'above' | 'below'
       : 'below'; // default to below
   }
