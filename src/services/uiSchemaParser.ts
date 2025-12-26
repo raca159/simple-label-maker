@@ -17,6 +17,10 @@ type ParsedOptionArray = Array<{
 
 // Type for nested options container (SeriesOptions, GlobalOptions)
 type NestedOptionsArray = Array<{
+  $?: {
+    subtitle?: string;
+    subtitlePosition?: string;
+  };
   Option?: ParsedOptionArray;
 }>;
 
@@ -87,6 +91,8 @@ interface ParsedLabel {
     showSeriesTitles?: string;
     xAxisTickSize?: string;
     buttonSize?: string;
+    subtitle?: string;
+    subtitlePosition?: string;
   };
   Option?: ParsedOptionArray;
   SeriesOptions?: NestedOptionsArray;
@@ -202,6 +208,11 @@ export class UISchemaParser {
         ? rawType as LabelConfig['type']
         : 'choices';
       
+      const validSubtitlePositions: Array<'above' | 'below'> = ['above', 'below'];
+      const subtitlePosition = attrs.subtitlePosition && validSubtitlePositions.includes(attrs.subtitlePosition as any)
+        ? attrs.subtitlePosition as 'above' | 'below'
+        : 'below'; // default to below
+      
       const config: LabelConfig = {
         name: attrs.name ?? 'label',
         type,
@@ -210,6 +221,8 @@ export class UISchemaParser {
         min: attrs.min ? parseInt(attrs.min, 10) : undefined,
         max: attrs.max ? parseInt(attrs.max, 10) : undefined,
         cssClass: attrs.cssClass,
+        subtitle: attrs.subtitle,
+        subtitlePosition: attrs.subtitle ? subtitlePosition : undefined,
         options: this.parseOptions(label.Option)
       };
 
@@ -222,8 +235,18 @@ export class UISchemaParser {
         config.xAxisTickSize = attrs.xAxisTickSize ? parseInt(attrs.xAxisTickSize, 10) : 11;
         config.buttonSize = attrs.buttonSize as 'small' | 'medium' | 'large' | undefined;
         config.axis = this.parseAxis(label.Axis);
-        config.seriesOptions = this.parseSeriesOptions(label.SeriesOptions);
-        config.globalOptions = this.parseGlobalOptions(label.GlobalOptions);
+        
+        // Parse series options with subtitle
+        const seriesOptionsData = this.parseOptionsWithSubtitle(label.SeriesOptions);
+        config.seriesOptions = seriesOptionsData.options;
+        config.seriesSubtitle = seriesOptionsData.subtitle;
+        config.seriesSubtitlePosition = seriesOptionsData.subtitlePosition;
+        
+        // Parse global options with subtitle
+        const globalOptionsData = this.parseOptionsWithSubtitle(label.GlobalOptions);
+        config.globalOptions = globalOptionsData.options;
+        config.globalSubtitle = globalOptionsData.subtitle;
+        config.globalSubtitlePosition = globalOptionsData.subtitlePosition;
       }
 
       return config;
@@ -251,6 +274,31 @@ export class UISchemaParser {
     return {
       min: axis.min ? parseFloat(axis.min) : undefined,
       max: axis.max ? parseFloat(axis.max) : undefined
+    };
+  }
+
+  private parseOptionsWithSubtitle(optionsArray?: NestedOptionsArray): {
+    options?: LabelOption[];
+    subtitle?: string;
+    subtitlePosition?: 'above' | 'below';
+  } {
+    if (!optionsArray || optionsArray.length === 0) {
+      return { options: undefined };
+    }
+
+    const optionsContainer = optionsArray[0];
+    const options = this.parseOptions(optionsContainer?.Option);
+    
+    const validSubtitlePositions: Array<'above' | 'below'> = ['above', 'below'];
+    const subtitlePosition = optionsContainer?.$?.subtitlePosition && 
+      validSubtitlePositions.includes(optionsContainer.$.subtitlePosition as any)
+      ? optionsContainer.$.subtitlePosition as 'above' | 'below'
+      : 'below'; // default to below
+
+    return {
+      options,
+      subtitle: optionsContainer?.$?.subtitle,
+      subtitlePosition: optionsContainer?.$?.subtitle ? subtitlePosition : undefined
     };
   }
 

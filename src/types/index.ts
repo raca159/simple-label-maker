@@ -89,6 +89,9 @@ export interface LabelConfig {
   max?: number;
   multiSelect?: boolean;
   cssClass?: string;
+  // Subtitle for regular labels (choices, classification)
+  subtitle?: string;
+  subtitlePosition?: 'above' | 'below';
   // Time-series specific fields
   count?: number;
   axis?: AxisConfig;
@@ -99,6 +102,12 @@ export interface LabelConfig {
   showSeriesTitles?: boolean;
   xAxisTickSize?: number;
   buttonSize?: 'small' | 'medium' | 'large';
+  // Subtitle for time-series series options
+  seriesSubtitle?: string;
+  seriesSubtitlePosition?: 'above' | 'below';
+  // Subtitle for time-series global options
+  globalSubtitle?: string;
+  globalSubtitlePosition?: 'above' | 'below';
 }
 
 export interface AxisConfig {
