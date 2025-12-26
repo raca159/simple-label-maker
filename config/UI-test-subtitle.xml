@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LabelingInterface title="Image Classification with Subtitles" description="Test subtitle feature with regular choice labels.">
+  <DataSource type="image" field="imageUrl" />
+  
+  <Labels>
+    <Label name="category" type="choices" required="true" multiSelect="false" subtitle="Select the primary object visible in the image" subtitlePosition="below">
+      <Option value="cat" label="Cat" hotkey="1" color="#FF5733" />
+      <Option value="dog" label="Dog" hotkey="2" color="#33FF57" />
+      <Option value="bird" label="Bird" hotkey="3" color="#3357FF" />
+      <Option value="other" label="Other" hotkey="4" color="#9B59B6" />
+    </Label>
+    
+    <Label name="quality" type="rating" required="false" min="1" max="5" />
+    
+    <Label name="tags" type="choices" required="false" multiSelect="true" subtitle="Choose all tags that apply to this image" subtitlePosition="above">
+      <Option value="outdoor" label="Outdoor" color="#10B981" />
+      <Option value="indoor" label="Indoor" color="#8B5CF6" />
+      <Option value="daytime" label="Daytime" color="#F59E0B" />
+      <Option value="nighttime" label="Nighttime" color="#6366F1" />
+    </Label>
+  </Labels>
+  
+  <Layout columns="1" showProgress="true" showInstructions="true" />
+</LabelingInterface>

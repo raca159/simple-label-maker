@@ -827,6 +827,17 @@ class LabelMaker {
   }
 
   renderChoices(label) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'choices-wrapper';
+    
+    // Add subtitle above if configured
+    if (label.subtitle && label.subtitlePosition === 'above') {
+      const subtitle = document.createElement('div');
+      subtitle.className = 'label-subtitle label-subtitle-above';
+      subtitle.textContent = label.subtitle;
+      wrapper.appendChild(subtitle);
+    }
+    
     const container = document.createElement('div');
     container.className = 'choices-container';
     
@@ -858,7 +869,17 @@ class LabelMaker {
       container.appendChild(optionDiv);
     });
     
-    return container;
+    wrapper.appendChild(container);
+    
+    // Add subtitle below if configured (or if no position specified, default to below)
+    if (label.subtitle && (!label.subtitlePosition || label.subtitlePosition === 'below')) {
+      const subtitle = document.createElement('div');
+      subtitle.className = 'label-subtitle label-subtitle-below';
+      subtitle.textContent = label.subtitle;
+      wrapper.appendChild(subtitle);
+    }
+    
+    return wrapper;
   }
 
   renderRating(label) {
@@ -948,6 +969,14 @@ class LabelMaker {
     globalTitle.textContent = label.globalLabel || 'Sample Classification';
     globalSection.appendChild(globalTitle);
 
+    // Add global subtitle above if configured
+    if (label.globalSubtitle && label.globalSubtitlePosition === 'above') {
+      const subtitle = document.createElement('div');
+      subtitle.className = 'label-subtitle label-subtitle-above';
+      subtitle.textContent = label.globalSubtitle;
+      globalSection.appendChild(subtitle);
+    }
+
     const globalOptionsContainer = document.createElement('div');
     globalOptionsContainer.className = 'global-options';
     globalOptions.filter(opt => !opt.hidden).forEach((opt, idx) => {
@@ -960,11 +989,28 @@ class LabelMaker {
       globalOptionsContainer.appendChild(radioLabel);
     });
     globalSection.appendChild(globalOptionsContainer);
+    
+    // Add global subtitle below if configured (or if no position specified, default to below)
+    if (label.globalSubtitle && (!label.globalSubtitlePosition || label.globalSubtitlePosition === 'below')) {
+      const subtitle = document.createElement('div');
+      subtitle.className = 'label-subtitle label-subtitle-below';
+      subtitle.textContent = label.globalSubtitle;
+      globalSection.appendChild(subtitle);
+    }
+    
     container.appendChild(globalSection);
 
     // Per-series rows with charts and labels side by side
     const seriesRowsSection = document.createElement('div');
     seriesRowsSection.className = 'series-rows-section';
+    
+    // Add series subtitle above all rows if configured
+    if (label.seriesSubtitle && label.seriesSubtitlePosition === 'above') {
+      const subtitle = document.createElement('div');
+      subtitle.className = 'label-subtitle label-subtitle-above series-subtitle';
+      subtitle.textContent = label.seriesSubtitle;
+      seriesRowsSection.appendChild(subtitle);
+    }
     
     for (let i = 0; i < seriesCount; i++) {
       const rowContainer = document.createElement('div');
@@ -1014,6 +1060,14 @@ class LabelMaker {
       // Render chart
       const data = seriesData[i] || this.generateDemoSeriesData();
       this.renderSeriesChart(canvas, data, i, { min: -1, max: 1 }, false, label.showSeriesTitles || false, label.xAxisTickSize !== undefined ? label.xAxisTickSize : 11);
+    }
+    
+    // Add series subtitle below all rows if configured (or if no position specified, default to below)
+    if (label.seriesSubtitle && (!label.seriesSubtitlePosition || label.seriesSubtitlePosition === 'below')) {
+      const subtitle = document.createElement('div');
+      subtitle.className = 'label-subtitle label-subtitle-below series-subtitle';
+      subtitle.textContent = label.seriesSubtitle;
+      seriesRowsSection.appendChild(subtitle);
     }
     
     container.appendChild(seriesRowsSection);

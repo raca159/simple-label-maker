@@ -9,6 +9,7 @@ A simple containerized and Azure-backed data labeling solution inspired by Label
 - **TypeScript Web Application**: Modern, responsive UI for data labeling
 - **Azure Blob Storage Integration**: Retrieve samples and store annotations in Azure Blob Storage
 - **Configurable Labeling Interface**: Define your labeling schema via `UI.xml`
+- **Label Subtitles**: Add contextual help text above or below label groups for better clarity
 - **Azure B2C Authentication Ready**: Built-in support for Azure AD B2C authentication
 - **Docker Containerized**: Easy deployment with Docker and docker-compose
 - **Multiple Data Types**: Support for images, text, audio, and video
@@ -20,6 +21,7 @@ A simple containerized and Azure-backed data labeling solution inspired by Label
 
 - [Getting Started](docs/index.md) - Overview and quick start
 - [Labeling Schemas Guide](docs/labeling-schemas.md) - Complete UI.xml reference
+- [Label Subtitle Feature](docs/subtitle-feature.md) - Add contextual help text to label groups
 - [Templates Guide](docs/templates.md) - Ready-to-use template documentation
 - [Custom Schemas Guide](docs/custom-schemas.md) - Create your own labeling interfaces
 
