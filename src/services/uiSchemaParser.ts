@@ -197,6 +197,18 @@ export class UISchemaParser {
     };
   }
 
+  /**
+   * Validate and normalize subtitle position
+   * @param position - Raw position string from XML
+   * @returns Validated position ('above' or 'below'), defaults to 'below'
+   */
+  private validateSubtitlePosition(position?: string): 'above' | 'below' {
+    const validSubtitlePositions: Array<'above' | 'below'> = ['above', 'below'];
+    return position && validSubtitlePositions.includes(position as any)
+      ? position as 'above' | 'below'
+      : 'below'; // default to below
+  }
+
   private parseLabels(labelsArray?: Array<{ Label?: ParsedLabel[] }>): LabelConfig[] {
     const labels = labelsArray?.[0]?.Label ?? [];
     const validLabelTypes: LabelConfig['type'][] = ['classification', 'bounding-box', 'polygon', 'text-input', 'choices', 'rating', 'time-series'];
@@ -208,10 +220,7 @@ export class UISchemaParser {
         ? rawType as LabelConfig['type']
         : 'choices';
       
-      const validSubtitlePositions: Array<'above' | 'below'> = ['above', 'below'];
-      const subtitlePosition = attrs.subtitlePosition && validSubtitlePositions.includes(attrs.subtitlePosition as any)
-        ? attrs.subtitlePosition as 'above' | 'below'
-        : 'below'; // default to below
+      const subtitlePosition = this.validateSubtitlePosition(attrs.subtitlePosition);
       
       const config: LabelConfig = {
         name: attrs.name ?? 'label',
@@ -289,11 +298,7 @@ export class UISchemaParser {
     const optionsContainer = optionsArray[0];
     const options = this.parseOptions(optionsContainer?.Option);
     
-    const validSubtitlePositions: Array<'above' | 'below'> = ['above', 'below'];
-    const subtitlePosition = optionsContainer?.$?.subtitlePosition && 
-      validSubtitlePositions.includes(optionsContainer.$.subtitlePosition as any)
-      ? optionsContainer.$.subtitlePosition as 'above' | 'below'
-      : 'below'; // default to below
+    const subtitlePosition = this.validateSubtitlePosition(optionsContainer?.$?.subtitlePosition);
 
     return {
       options,

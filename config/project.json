@@ -8,23 +8,8 @@
     "dataPath": "dataPath",
     "annotationsPath": "annotationsPath"
   },
-  "sampleTask": null,
-  "samples": [
-    {
-      "id": "sample-001",
-      "fileName": "data/sample1.json",
-      "type": "time-series",
-      "metadata": {
-        "channelCount": 10
-      }
-    },
-    {
-      "id": "sample-002",
-      "fileName": "data/sample2.json",
-      "type": "time-series",
-      "metadata": {
-        "channelCount": 10
-      }
-    }
-  ]
+  "sampleTask": {
+    "fileName": "https://accountName.blob.core.windows.net/containerName/task_0.new.json"
+  },
+  "samples": []
 }
