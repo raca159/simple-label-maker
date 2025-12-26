@@ -302,16 +302,6 @@ export class UISchemaParser {
     };
   }
 
-  private parseSeriesOptions(seriesOptionsArray?: NestedOptionsArray): LabelOption[] | undefined {
-    const seriesOptions = seriesOptionsArray?.[0]?.Option;
-    return this.parseOptions(seriesOptions);
-  }
-
-  private parseGlobalOptions(globalOptionsArray?: NestedOptionsArray): LabelOption[] | undefined {
-    const globalOptions = globalOptionsArray?.[0]?.Option;
-    return this.parseOptions(globalOptions);
-  }
-
   private parseLayout(layouts?: Array<{ $?: { columns?: string; showProgress?: string; showInstructions?: string; cssClass?: string; spacing?: string } }>): LayoutConfig | undefined {
     const layout = layouts?.[0]?.$;
     if (!layout) return undefined;
