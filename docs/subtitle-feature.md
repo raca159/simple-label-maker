@@ -117,7 +117,7 @@ Add `subtitle` and `subtitlePosition` attributes to the `<GlobalOptions>` elemen
 ## Visual Styling
 
 Subtitles are rendered with the following styling:
-- Font size: 13px (0.8125rem)
+- Font size: 0.8125rem (approximately 13px at default browser font size)
 - Color: Slate gray (#64748b)
 - Font style: Italic
 - Line height: 1.4
