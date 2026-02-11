@@ -97,6 +97,9 @@ interface ParsedLabel {
   Option?: ParsedOptionArray;
   SeriesOptions?: NestedOptionsArray;
   GlobalOptions?: NestedOptionsArray;
+  SeriesTitles?: Array<{
+    Title?: string[];
+  }>;
   Axis?: Array<{
     $?: {
       min?: string;
@@ -244,6 +247,7 @@ export class UISchemaParser {
         config.xAxisTickSize = attrs.xAxisTickSize ? parseInt(attrs.xAxisTickSize, 10) : 11;
         config.buttonSize = attrs.buttonSize as 'small' | 'medium' | 'large' | undefined;
         config.axis = this.parseAxis(label.Axis);
+        config.seriesTitles = this.parseSeriesTitles(label.SeriesTitles);
         
         // Parse series options with subtitle
         const seriesOptionsData = this.parseOptionsWithSubtitle(label.SeriesOptions);
@@ -260,6 +264,19 @@ export class UISchemaParser {
 
       return config;
     });
+  }
+
+  private parseSeriesTitles(seriesTitles?: Array<{ Title?: string[] }>): string[] | undefined {
+    if (!seriesTitles || seriesTitles.length === 0) {
+      return undefined;
+    }
+
+    const rawTitles = seriesTitles[0]?.Title ?? [];
+    const titles = rawTitles
+      .map((title) => (title ?? '').trim())
+      .filter((title) => title.length > 0);
+
+    return titles.length > 0 ? titles : undefined;
   }
 
   private parseOptions(options?: ParsedOptionArray): LabelOption[] | undefined {
@@ -374,6 +391,18 @@ export class UISchemaParser {
   <Labels>
     <Label name="ecg" type="time-series" count="10" required="true" globalLabel="Sample Classification" commentLabel="Observations">
       <Axis min="-1" max="1" />
+      <SeriesTitles>
+        <Title>Lead I</Title>
+        <Title>Lead II</Title>
+        <Title>Lead III</Title>
+        <Title>aVR</Title>
+        <Title>aVL</Title>
+        <Title>aVF</Title>
+        <Title>V1</Title>
+        <Title>V2</Title>
+        <Title>V3</Title>
+        <Title>V4</Title>
+      </SeriesTitles>
       <SeriesOptions>
         <Option value="AF" label="Atrial Fibrillation" color="#FF5733" />
         <Option value="Noise" label="Noise" color="#FFC300" />

@@ -234,6 +234,15 @@ Use `type="time-series"` for multi-channel time series annotation.
 </SeriesOptions>
 ```
 
+**SeriesTitles** - Optional per-series plot titles (displayed above each plot):
+```xml
+<SeriesTitles>
+  <Title>Lead I</Title>
+  <Title>Lead II</Title>
+  <Title>Lead III</Title>
+</SeriesTitles>
+```
+
 **GlobalOptions** - Overall sample classification:
 ```xml
 <GlobalOptions>
@@ -248,6 +257,20 @@ Use `type="time-series"` for multi-channel time series annotation.
 <Label name="ecg" type="time-series" count="12" required="true" 
        globalLabel="Diagnosis" commentLabel="Clinical Notes">
   <Axis min="-1.5" max="1.5" />
+  <SeriesTitles>
+    <Title>Lead I</Title>
+    <Title>Lead II</Title>
+    <Title>Lead III</Title>
+    <Title>aVR</Title>
+    <Title>aVL</Title>
+    <Title>aVF</Title>
+    <Title>V1</Title>
+    <Title>V2</Title>
+    <Title>V3</Title>
+    <Title>V4</Title>
+    <Title>V5</Title>
+    <Title>V6</Title>
+  </SeriesTitles>
   <SeriesOptions>
     <Option value="normal" label="Normal" color="#10B981" />
     <Option value="AF" label="Atrial Fibrillation" color="#EF4444" />

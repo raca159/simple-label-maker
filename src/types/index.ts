@@ -100,6 +100,7 @@ export interface LabelConfig {
   globalLabel?: string;
   commentLabel?: string;
   showSeriesTitles?: boolean;
+  seriesTitles?: string[];
   xAxisTickSize?: number;
   buttonSize?: 'small' | 'medium' | 'large';
   // Subtitle for time-series series options

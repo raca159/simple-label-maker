@@ -956,7 +956,7 @@ class LabelMaker {
     
     const instructionsText = document.createElement('p');
     instructionsText.className = 'instructions-text';
-    instructionsText.textContent = label.instructions || 'Label the samples below.';
+    instructionsText.textContent = label.instructions || 'Rotule as amostras';
     instructionsSection.appendChild(instructionsText);
     container.appendChild(instructionsSection);
 
@@ -1017,13 +1017,17 @@ class LabelMaker {
       rowContainer.className = 'series-row-with-chart';
       rowContainer.dataset.seriesIndex = i;
 
+      const seriesTitle = label.seriesTitles && label.seriesTitles[i]
+        ? label.seriesTitles[i]
+        : `Lead ${i + 1}`;
+
       // Left side: chart
       const chartCol = document.createElement('div');
       chartCol.className = 'series-chart-col';
-      
+
       const seriesLabel = document.createElement('div');
       seriesLabel.className = 'series-chart-label';
-      seriesLabel.textContent = `Lead ${i + 1}`;
+      seriesLabel.textContent = seriesTitle;
       chartCol.appendChild(seriesLabel);
       
       const chartContainer = document.createElement('div');
@@ -1054,12 +1058,27 @@ class LabelMaker {
       });
       
       selectCol.appendChild(optionsContainer);
+
+      const seriesTitleLabel = document.createElement('div');
+      seriesTitleLabel.className = 'series-select-title';
+      seriesTitleLabel.textContent = seriesTitle;
+      selectCol.appendChild(seriesTitleLabel);
+
       rowContainer.appendChild(selectCol);
       seriesRowsSection.appendChild(rowContainer);
 
       // Render chart
       const data = seriesData[i] || this.generateDemoSeriesData();
-      this.renderSeriesChart(canvas, data, i, { min: -1, max: 1 }, false, label.showSeriesTitles || false, label.xAxisTickSize !== undefined ? label.xAxisTickSize : 11);
+      this.renderSeriesChart(
+        canvas,
+        data,
+        i,
+        { min: -1, max: 1 },
+        false,
+        label.showSeriesTitles || false,
+        label.xAxisTickSize !== undefined ? label.xAxisTickSize : 11,
+        seriesTitle
+      );
     }
     
     // Add series subtitle below all rows if configured (or if no position specified, default to below)
@@ -1100,7 +1119,7 @@ class LabelMaker {
     return data;
   }
 
-  renderSeriesChart(canvas, data, seriesIndex, axisConfig, isDataPanel = false, showTitle = false, xAxisTickSize = 11) {
+  renderSeriesChart(canvas, data, seriesIndex, axisConfig, isDataPanel = false, showTitle = false, xAxisTickSize = 11, seriesTitle = '') {
     // Check if Chart.js is available
     if (typeof Chart === 'undefined') {
       // Fallback: render a simple canvas visualization
@@ -1140,7 +1159,7 @@ class LabelMaker {
           },
           title: {
             display: showTitle,
-            text: `Lead ${seriesIndex + 1}`,
+            text: seriesTitle || `Lead ${seriesIndex + 1}`,
             font: {
               size: 11,
               weight: 'bold'
