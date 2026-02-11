@@ -1064,6 +1064,41 @@ body {
   box-shadow: 0 0 0 3px var(--primary-100);
 }
 
+/* Label Subtitles */
+.label-subtitle {
+  font-size: 0.8125rem;
+  color: var(--slate-600);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.label-subtitle-above {
+  margin-bottom: 0.5rem;
+}
+
+.label-subtitle-below {
+  margin-top: 0.5rem;
+}
+
+/* Series subtitle specific styling */
+.series-subtitle {
+  padding: 0.5rem 0;
+  text-align: center;
+  border-top: 1px solid var(--slate-200);
+}
+
+.series-subtitle.label-subtitle-above {
+  border-top: none;
+  border-bottom: 1px solid var(--slate-200);
+  margin-bottom: 0.75rem;
+  padding-top: 0;
+}
+
+.series-subtitle.label-subtitle-below {
+  margin-top: 0.75rem;
+  padding-bottom: 0;
+}
+
 /* Help Button */
 .btn-help {
   display: inline-flex;

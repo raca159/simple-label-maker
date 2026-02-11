@@ -17,6 +17,10 @@ type ParsedOptionArray = Array<{
 
 // Type for nested options container (SeriesOptions, GlobalOptions)
 type NestedOptionsArray = Array<{
+  $?: {
+    subtitle?: string;
+    subtitlePosition?: string;
+  };
   Option?: ParsedOptionArray;
 }>;
 
@@ -87,6 +91,8 @@ interface ParsedLabel {
     showSeriesTitles?: string;
     xAxisTickSize?: string;
     buttonSize?: string;
+    subtitle?: string;
+    subtitlePosition?: string;
   };
   Option?: ParsedOptionArray;
   SeriesOptions?: NestedOptionsArray;
@@ -191,6 +197,18 @@ export class UISchemaParser {
     };
   }
 
+  /**
+   * Validate and normalize subtitle position
+   * @param position - Raw position string from XML
+   * @returns Validated position ('above' or 'below'), defaults to 'below'
+   */
+  private validateSubtitlePosition(position?: string): 'above' | 'below' {
+    const validSubtitlePositions: Array<'above' | 'below'> = ['above', 'below'];
+    return position && validSubtitlePositions.includes(position as 'above' | 'below')
+      ? position as 'above' | 'below'
+      : 'below'; // default to below
+  }
+
   private parseLabels(labelsArray?: Array<{ Label?: ParsedLabel[] }>): LabelConfig[] {
     const labels = labelsArray?.[0]?.Label ?? [];
     const validLabelTypes: LabelConfig['type'][] = ['classification', 'bounding-box', 'polygon', 'text-input', 'choices', 'rating', 'time-series'];
@@ -202,6 +220,8 @@ export class UISchemaParser {
         ? rawType as LabelConfig['type']
         : 'choices';
       
+      const subtitlePosition = this.validateSubtitlePosition(attrs.subtitlePosition);
+      
       const config: LabelConfig = {
         name: attrs.name ?? 'label',
         type,
@@ -210,6 +230,8 @@ export class UISchemaParser {
         min: attrs.min ? parseInt(attrs.min, 10) : undefined,
         max: attrs.max ? parseInt(attrs.max, 10) : undefined,
         cssClass: attrs.cssClass,
+        subtitle: attrs.subtitle,
+        subtitlePosition: attrs.subtitle ? subtitlePosition : undefined,
         options: this.parseOptions(label.Option)
       };
 
@@ -222,8 +244,18 @@ export class UISchemaParser {
         config.xAxisTickSize = attrs.xAxisTickSize ? parseInt(attrs.xAxisTickSize, 10) : 11;
         config.buttonSize = attrs.buttonSize as 'small' | 'medium' | 'large' | undefined;
         config.axis = this.parseAxis(label.Axis);
-        config.seriesOptions = this.parseSeriesOptions(label.SeriesOptions);
-        config.globalOptions = this.parseGlobalOptions(label.GlobalOptions);
+        
+        // Parse series options with subtitle
+        const seriesOptionsData = this.parseOptionsWithSubtitle(label.SeriesOptions);
+        config.seriesOptions = seriesOptionsData.options;
+        config.seriesSubtitle = seriesOptionsData.subtitle;
+        config.seriesSubtitlePosition = seriesOptionsData.subtitlePosition;
+        
+        // Parse global options with subtitle
+        const globalOptionsData = this.parseOptionsWithSubtitle(label.GlobalOptions);
+        config.globalOptions = globalOptionsData.options;
+        config.globalSubtitle = globalOptionsData.subtitle;
+        config.globalSubtitlePosition = globalOptionsData.subtitlePosition;
       }
 
       return config;
@@ -254,14 +286,25 @@ export class UISchemaParser {
     };
   }
 
-  private parseSeriesOptions(seriesOptionsArray?: NestedOptionsArray): LabelOption[] | undefined {
-    const seriesOptions = seriesOptionsArray?.[0]?.Option;
-    return this.parseOptions(seriesOptions);
-  }
+  private parseOptionsWithSubtitle(optionsArray?: NestedOptionsArray): {
+    options?: LabelOption[];
+    subtitle?: string;
+    subtitlePosition?: 'above' | 'below';
+  } {
+    if (!optionsArray || optionsArray.length === 0) {
+      return { options: undefined };
+    }
 
-  private parseGlobalOptions(globalOptionsArray?: NestedOptionsArray): LabelOption[] | undefined {
-    const globalOptions = globalOptionsArray?.[0]?.Option;
-    return this.parseOptions(globalOptions);
+    const optionsContainer = optionsArray[0];
+    const options = this.parseOptions(optionsContainer?.Option);
+    
+    const subtitlePosition = this.validateSubtitlePosition(optionsContainer?.$?.subtitlePosition);
+
+    return {
+      options,
+      subtitle: optionsContainer?.$?.subtitle,
+      subtitlePosition: optionsContainer?.$?.subtitle ? subtitlePosition : undefined
+    };
   }
 
   private parseLayout(layouts?: Array<{ $?: { columns?: string; showProgress?: string; showInstructions?: string; cssClass?: string; spacing?: string } }>): LayoutConfig | undefined {
