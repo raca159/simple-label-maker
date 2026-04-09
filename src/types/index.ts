@@ -122,6 +122,7 @@ export interface LabelOption {
   hotkey?: string;
   color?: string;
   hidden?: boolean;
+  minSeriesMatch?: number;
 }
 
 export interface LayoutConfig {
