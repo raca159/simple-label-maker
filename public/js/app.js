@@ -1376,7 +1376,7 @@ class LabelMaker {
     const requiredLabels = this.uiSchema.labelingInterface.labels
       .filter(l => l.required)
       .map(l => l.name);
-    
+
     const missingLabels = requiredLabels.filter(name => {
       const value = labels[name];
       if (!value) return true;
@@ -1386,10 +1386,49 @@ class LabelMaker {
       }
       return false;
     });
-    
+
+    if (missingLabels.length > 0) {
+      return {
+        valid: false,
+        missing: missingLabels
+      };
+    }
+
+    // Check global-series match constraints
+    for (const labelConfig of this.uiSchema.labelingInterface.labels) {
+      if (labelConfig.type !== 'time-series') continue;
+
+      const annotation = labels[labelConfig.name];
+      if (!annotation || !annotation.globalLabel) continue;
+      if (!labelConfig.globalOptions) continue;
+
+      const selectedOption = labelConfig.globalOptions.find(
+        opt => opt.value === annotation.globalLabel
+      );
+
+      if (!selectedOption || selectedOption.minSeriesMatch === undefined) continue;
+
+      const matchCount = Object.values(annotation.seriesLabels)
+        .filter(val => val === selectedOption.value)
+        .length;
+
+      if (matchCount < selectedOption.minSeriesMatch) {
+        return {
+          valid: false,
+          missing: [],
+          matchError: {
+            labelName: labelConfig.name,
+            requiredCount: selectedOption.minSeriesMatch,
+            currentCount: matchCount,
+            globalLabel: selectedOption.label
+          }
+        };
+      }
+    }
+
     return {
-      valid: missingLabels.length === 0,
-      missing: missingLabels
+      valid: true,
+      missing: []
     };
   }
 
@@ -1398,7 +1437,12 @@ class LabelMaker {
     const validation = this.validateLabels(labels);
     
     if (!validation.valid) {
-      this.showToast(`Missing required labels: ${validation.missing.join(', ')}`, 'warning');
+      if (validation.matchError) {
+        const { requiredCount, globalLabel } = validation.matchError;
+        this.showToast(`Select at least ${requiredCount} series as ${globalLabel}`, 'warning');
+      } else {
+        this.showToast(`Missing required labels: ${validation.missing.join(', ')}`, 'warning');
+      }
       return;
     }
 
