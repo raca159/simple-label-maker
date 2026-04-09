@@ -51,7 +51,7 @@
         <Option value="None" label="None" color="#C0C0C0" hidden="true" />
       </SeriesOptions>
       <GlobalOptions>
-        <Option value="STD" label="STD" color="#FF5733" />
+        <Option value="STD" label="STD" color="#FF5733" minSeriesMatch="2" />
         <Option value="nonSTD" label="non STD" color="#489f58ff" />
         <Option value="Unstable" label="Unstable" color="#000000ff" />
       </GlobalOptions>
