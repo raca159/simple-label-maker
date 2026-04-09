@@ -12,6 +12,7 @@ type ParsedOptionArray = Array<{
     hotkey?: string;
     color?: string;
     hidden?: string;
+    minSeriesMatch?: string;
   };
 }>;
 
@@ -260,6 +261,15 @@ export class UISchemaParser {
         config.globalOptions = globalOptionsData.options;
         config.globalSubtitle = globalOptionsData.subtitle;
         config.globalSubtitlePosition = globalOptionsData.subtitlePosition;
+
+        // Warn if any global option has minSeriesMatch > series count
+        if (config.globalOptions && config.count) {
+          for (const opt of config.globalOptions) {
+            if (opt.minSeriesMatch !== undefined && opt.minSeriesMatch > config.count) {
+              console.warn(`Warning: Global option "${opt.label}" has minSeriesMatch=${opt.minSeriesMatch} but only ${config.count} series exist.`);
+            }
+          }
+        }
       }
 
       return config;
@@ -289,7 +299,8 @@ export class UISchemaParser {
       label: opt.$?.label ?? opt.$?.value ?? '',
       hotkey: opt.$?.hotkey,
       color: opt.$?.color,
-      hidden: opt.$?.hidden === 'true'
+      hidden: opt.$?.hidden === 'true',
+      minSeriesMatch: opt.$?.minSeriesMatch ? parseInt(opt.$?.minSeriesMatch, 10) : undefined
     }));
   }
 
