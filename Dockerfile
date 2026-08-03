@@ -40,7 +40,7 @@ COPY config/UI.xml ./config/
 ARG TASK_NUMBER=0
 # Copy project.json template and replace task number
 COPY config/project.json ./config/project.json
-RUN sed -i "s|task_\.new\.json|task_${TASK_NUMBER}.new.json|g" ./config/project.json
+RUN sed -i "s|task_0\.json|task_${TASK_NUMBER}\.json|g" ./config/project.json
 
 # Change ownership to non-root user
 RUN chown -R labelmaker:nodejs /app

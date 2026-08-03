@@ -12,28 +12,29 @@ This combines:
 - Exact reviewer multiplicity for the overlap subset
 
 Example:
-python3 scripts/generate_hybrid_overlap_tasks.py \
+python scripts/generate_hybrid_overlap_tasks.py \
     --sample-count 2000 \
-    --task-count 5 \
+    --task-count 6 \
     --overlap-percent 10 \
     --reviewers-per-overlap 3 \
-    --base-url https://labeldataus001.blob.core.windows.net/data/afdata/ \
-    --output-dir ./tasks_hybrid
+    --sample-type time-series \
+    --base-url https://SOMETHING.blob.core.windows.net/data/ \
+    --output-dir ./tasks --metadata '{"channelCount": 10}'
 """
 
 import argparse
 import json
 import os
 import sys
-from typing import Dict, List, Set
+from typing import Any, Dict, List, Set
 
 
 def parse_arguments() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description=(
-            "Generate Label Studio task JSON files with hybrid overlap: "
-            "some samples reviewed by N tasks and others by one task."
+            "Generate hybrid task JSON files where overlap samples are reviewed "
+            "by N tasks and non-overlap samples by one task."
         )
     )
     parser.add_argument(
@@ -59,6 +60,29 @@ def parse_arguments() -> argparse.Namespace:
         type=int,
         default=3,
         help="How many tasks each overlap sample appears in (default: 3).",
+    )
+    parser.add_argument(
+        "--output-format",
+        choices=["simple-label-maker", "label-studio"],
+        default="simple-label-maker",
+        help=(
+            "Output schema format (default: simple-label-maker). "
+            "Use label-studio for nested Label Studio task format."
+        ),
+    )
+    parser.add_argument(
+        "--sample-type",
+        choices=["image", "text", "audio", "video", "time-series"],
+        default="time-series",
+        help="Sample type used for simple-label-maker format (default: time-series).",
+    )
+    parser.add_argument(
+        "--metadata",
+        default="{}",
+        help=(
+            "JSON metadata to attach to each sample when output-format is "
+            "simple-label-maker (e.g., '{\"channelCount\": 10}')."
+        ),
     )
     parser.add_argument(
         "--base-url",
@@ -139,6 +163,21 @@ def validate_arguments(args: argparse.Namespace) -> None:
     if not args.base_url:
         print("Error: --base-url is required", file=sys.stderr)
         sys.exit(1)
+
+
+def parse_metadata(metadata_str: str) -> Dict[str, Any]:
+    """Parse metadata JSON string."""
+    try:
+        parsed = json.loads(metadata_str)
+    except json.JSONDecodeError as error:
+        print(f"Error: Invalid JSON in --metadata: {error}", file=sys.stderr)
+        sys.exit(1)
+
+    if not isinstance(parsed, dict):
+        print("Error: --metadata must be a JSON object", file=sys.stderr)
+        sys.exit(1)
+
+    return parsed
 
 
 def build_unique_chunks(sample_count: int, task_count: int) -> List[List[int]]:
@@ -230,9 +269,33 @@ def build_task_payload(
     indices: List[int],
     task_index: int,
     args: argparse.Namespace,
-) -> List[List[Dict[str, Dict[str, str]]]]:
-    """Build nested Label Studio task payload for one task file."""
-    payload: List[List[Dict[str, Dict[str, str]]]] = []
+    metadata: Dict[str, Any],
+) -> List[Dict[str, Any]] | List[List[Dict[str, Dict[str, str]]]]:
+    """Build task payload for one task file in selected output format."""
+    if args.output_format == "simple-label-maker":
+        payload: List[Dict[str, Any]] = []
+
+        for pos, sample_offset in enumerate(indices):
+            sample_index = args.start_index + sample_offset
+            sample_url = build_sample_url(
+                base_url=args.base_url,
+                sample_prefix=args.sample_prefix,
+                sample_index=sample_index,
+                sample_extension=args.sample_extension,
+            )
+
+            item = {
+                "id": f"{args.id_prefix}_{sample_index}",
+                "fileName": sample_url,
+                "type": args.sample_type,
+            }
+            if metadata:
+                item["metadata"] = metadata.copy()
+            payload.append(item)
+
+        return payload
+
+    payload_ls: List[List[Dict[str, Dict[str, str]]]] = []
 
     for pos, sample_offset in enumerate(indices):
         sample_index = args.start_index + sample_offset
@@ -244,17 +307,21 @@ def build_task_payload(
         )
 
         item = {
-            "id": f"{args.id_prefix}_{task_index}_{pos}",
+            "id": f"{args.id_prefix}_{sample_index}",
             "data": {
                 args.data_field: sample_url,
             },
         }
-        payload.append([item])
+        payload_ls.append([item])
 
-    return payload
+    return payload_ls
 
 
-def write_task_file(payload: List[List[Dict[str, Dict[str, str]]]], file_path: str, indent: int) -> None:
+def write_task_file(
+    payload: List[Dict[str, Any]] | List[List[Dict[str, Dict[str, str]]]],
+    file_path: str,
+    indent: int,
+) -> None:
     """Write one task payload to JSON file."""
     with open(file_path, "w", encoding="utf-8") as out_file:
         json.dump(payload, out_file, indent=indent)
@@ -293,6 +360,7 @@ def main() -> None:
     """Script entry point."""
     args = parse_arguments()
     validate_arguments(args)
+    metadata = parse_metadata(args.metadata)
 
     overlap_count = int(round(args.sample_count * (args.overlap_percent / 100.0)))
     overlap_indices = choose_overlap_indices(args.sample_count, overlap_count)
@@ -318,13 +386,20 @@ def main() -> None:
         f"samples={args.sample_count}, tasks={args.task_count}, "
         f"overlap_percent={args.overlap_percent}%, "
         f"overlap_samples={len(overlap_indices)}, "
-        f"reviewers_per_overlap={args.reviewers_per_overlap}"
+        f"reviewers_per_overlap={args.reviewers_per_overlap}, "
+        f"format={args.output_format}, "
+        f"metadata_fields={len(metadata)}"
     )
 
     total_entries = 0
 
     for task_index, indices in enumerate(assignments):
-        payload = build_task_payload(indices=indices, task_index=task_index, args=args)
+        payload = build_task_payload(
+            indices=indices,
+            task_index=task_index,
+            args=args,
+            metadata=metadata,
+        )
 
         file_name = f"{args.task_prefix}{task_index}.json"
         file_path = os.path.join(args.output_dir, file_name)

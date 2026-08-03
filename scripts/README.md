@@ -20,6 +20,7 @@ python3 scripts/generate_hybrid_overlap_tasks.py \
   --task-count <num-task-files> \
   --overlap-percent <percent-overlap-samples> \
   --reviewers-per-overlap <n> \
+  --sample-type <sample-type> \
   --base-url <blob-base-url> \
   --output-dir <output-directory>
 ```
@@ -32,7 +33,10 @@ python3 scripts/generate_hybrid_overlap_tasks.py \
 | `--task-count` | Yes | Number of task files to generate | `5` |
 | `--overlap-percent` | Yes | Percentage of samples that should be overlap samples | `20` |
 | `--reviewers-per-overlap` | No | Number of tasks each overlap sample appears in (default: `3`) | `3` |
-| `--base-url` | Yes | Blob URL prefix used for all samples | `https://labeldataus001.blob.core.windows.net/data/afdata/` |
+| `--output-format` | No | Output schema format. `simple-label-maker` (default) works directly with this app; `label-studio` creates nested `data` format | `simple-label-maker` |
+| `--sample-type` | No | Sample type used when output format is `simple-label-maker` (default: `time-series`) | `time-series` |
+| `--metadata` | No | JSON metadata included in each sample when output format is `simple-label-maker` | `'{"channelCount": 10}'` |
+| `--base-url` | Yes | Blob URL prefix used for all samples | `https://label.blob.core.windows.net/data/input/` |
 | `--output-dir` | No | Output directory for generated `task_*.json` files | `./tasks-hybrid` |
 | `--sample-prefix` | No | Sample filename prefix | `sample.` |
 | `--sample-extension` | No | Sample filename extension | `.csv` |
@@ -49,11 +53,26 @@ python3 scripts/generate_hybrid_overlap_tasks.py \
   --task-count 5 \
   --overlap-percent 20 \
   --reviewers-per-overlap 3 \
-  --base-url https://labeldataus001.blob.core.windows.net/data/afdata/ \
+  --output-format simple-label-maker \
+  --sample-type time-series \
+  --metadata '{"channelCount": 10}' \
+  --base-url https://label.blob.core.windows.net/data/input/ \
   --sample-prefix sample. \
   --sample-extension .csv \
-  --data-field csv_url \
   --output-dir ./tasks-hybrid
+```
+
+When using `simple-label-maker` output format, each entry is generated as:
+
+```json
+{
+  "id": "task_83",
+  "fileName": "https://label.blob.core.windows.net/data/input/sample.83.csv",
+  "type": "time-series",
+  "metadata": {
+    "channelCount": 10
+  }
+}
 ```
 
 ### Assignment Guarantees
@@ -86,7 +105,7 @@ python3 scripts/generate_multi_reviewer_tasks.py \
 | `--sample-count` | Yes | Total number of samples | `2000` |
 | `--task-count` | Yes | Number of task files to generate | `5` |
 | `--reviewers-per-sample` | No | Exact number of task files each sample must appear in (default: `3`) | `3` |
-| `--base-url` | Yes | Blob URL prefix used for all samples | `https://labeldataus001.blob.core.windows.net/data/afdata/` |
+| `--base-url` | Yes | Blob URL prefix used for all samples | `https://label.blob.core.windows.net/data/input/` |
 | `--output-dir` | No | Output directory for generated `task_*.json` files | `./tasks-three-reviewers` |
 | `--sample-prefix` | No | Sample filename prefix | `sample.` |
 | `--sample-extension` | No | Sample filename extension | `.csv` |
@@ -102,7 +121,7 @@ python3 scripts/generate_multi_reviewer_tasks.py \
   --sample-count 2000 \
   --task-count 5 \
   --reviewers-per-sample 3 \
-  --base-url https://labeldataus001.blob.core.windows.net/data/afdata/ \
+  --base-url https://label.blob.core.windows.net/data/input/ \
   --sample-prefix sample. \
   --sample-extension .csv \
   --data-field csv_url \
@@ -137,7 +156,7 @@ python3 scripts/generate_label_studio_tasks.py \
 | `--sample-count` | Yes | Total number of samples | `2000` |
 | `--task-count` | Yes | Number of task files to generate | `20` |
 | `--overlap-percent` | No | Total overlap between neighboring tasks. `5` means ~2.5% on each side of the core split | `5` |
-| `--base-url` | Yes | Blob URL prefix used for all samples | `https://labeldataus001.blob.core.windows.net/data/afdata/` |
+| `--base-url` | Yes | Blob URL prefix used for all samples | `https://label.blob.core.windows.net/data/input/` |
 | `--output-dir` | No | Output directory for generated `task_*.json` files | `./tasks` |
 | `--sample-prefix` | No | Sample filename prefix | `sample.` |
 | `--sample-extension` | No | Sample filename extension | `.csv` |
@@ -156,7 +175,7 @@ Each generated file (`task_0.json`, `task_1.json`, etc.) uses nested Label Studi
     {
       "id": "task_0_0",
       "data": {
-        "csv_url": "https://labeldataus001.blob.core.windows.net/data/afdata/sample.1999.csv"
+        "csv_url": "https://label.blob.core.windows.net/data/input/sample.1999.csv"
       }
     }
   ],
@@ -164,7 +183,7 @@ Each generated file (`task_0.json`, `task_1.json`, etc.) uses nested Label Studi
     {
       "id": "task_0_1",
       "data": {
-        "csv_url": "https://labeldataus001.blob.core.windows.net/data/afdata/sample.0.csv"
+        "csv_url": "https://label.blob.core.windows.net/data/input/sample.0.csv"
       }
     }
   ]
@@ -178,7 +197,7 @@ python3 scripts/generate_label_studio_tasks.py \
   --sample-count 2000 \
   --task-count 20 \
   --overlap-percent 5 \
-  --base-url https://labeldataus001.blob.core.windows.net/data/afdata/ \
+  --base-url https://label.blob.core.windows.net/data/input/ \
   --sample-prefix sample. \
   --sample-extension .csv \
   --data-field csv_url \
